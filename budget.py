@@ -18,7 +18,7 @@ df
 ###################################################################
 ## SETUP
 import pandas as pd
-import datetime
+import datetime as dt
 import seaborn as sbn
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -54,19 +54,37 @@ budget
 
 ##--------------------------------------------------
 ## read current year income and expense data
-actual = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
-actual = actual.dropna(how='all')  # how='all' only drops rows if all columns are na
-actual.columns = actual.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
-actual.columns
+actual_read = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
+actual_read = actual_read.dropna(how='all')  # how='all' only drops rows if all columns are na
+actual_read = actual_read.dropna()  # how='all' only drops rows if all columns are na
+actual_read.columns = actual_read.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+actual_read.columns
+nrows = len(actual_read)
 
 ## reformat to columns of date, account, value
+## actual_read.head()
+account  = actual_read[['Account']].copy()  # single or double bracket to create series or dataframe, respectively
+daterange =                      pd.date_range(start='1/1/2023', end=dt.datetime.now(), freq='M')
+
+actual = []
+for date in daterange:
+    temp = []
+    for j in range(1, len(actual_read.columns))-2:
+        ## create accountmonth dataframe with date, account, and value for month
+        ## first duplicate date using np but need to convert to a series for pandas
+        daterepeated = pd.DataFrame({'date':pd.Series(np.repeat(date, nrows))})
+        value = pd.DataFrame({'value':actual_read.iloc[:,j]})
+        ## pd.concat used as cbind in R
+        temp = pd.concat([daterepeated, account, value], keys=['date', 'account', 'value'])
+    ## pd.concat used as rbind in R
+    actual = pd.concat([actual, temp])
 
 ##--------------------------------------------------
 ## read prior year income and expense data
-actual_prior = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
-actual = actual.dropna(how='all')  # how='all' only drops rows if all columns are na
-actual.columns = actual.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
-actual.columns
+actual_read_prior = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
+actual_read_prior = actual_read_prior.dropna(how='all')  # how='all' only drops rows if all columns are na
+actual_read_prior.columns = actual_read_prior.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+actual_read_prior.columns
 
 ## reformat to columns of date, account, value
 
