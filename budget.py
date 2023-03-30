@@ -22,6 +22,8 @@ import numpy as np
 ##       daterange = '2022:2023'
 ## https://towardsdatascience.com/working-with-datetime-in-pandas-dataframe-663f7af6c587
 daterange = '2023'
+## pd.to_datetime(daterange)
+
 
 ###################################################################
 ## READ DATA
@@ -30,9 +32,10 @@ daterange = '2023'
 ## read budget file
 ## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
 budget = pd.read_excel('budget_2023.xlsx')
-budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
-budget.columns = ['InOrOut', 'GreenSheet', 'Committee', 'SourceOfFunds', 'Account', 'junk6', 'junk7', 'Budget',
-                  'junk9', 'junk10', 'junk11', 'junk12', 'junk13', 'junk14']
+## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+## only keep needed columns
+budget = budget[['Income or Expence', 'Budget category', 'Committee + Income Detail', 'Source of Funds', 'Line Items', '2023 Budget']]
+budget.columns = ['InOrOut',          'GreenSheet',      'Committee',                 'SourceOfFunds',   'Account',    'Budget']
 
 ## ## sum totals for budget category and committee
 ## ## pivot table example
@@ -42,10 +45,10 @@ budget.columns = ['InOrOut', 'GreenSheet', 'Committee', 'SourceOfFunds', 'Accoun
 ## df
 ## df.pivot_table(columns='Fruit', values=['Stock', 'Backorder'], aggfunc=np.sum)
 
-## in budget, want to sum budget_2023 by 1st 3 columns
-pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
-pivot.head()
-
+## ## in budget, want to sum budget_2023 by 1st 3 columns
+## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
+## pivot.head()
+##
 ## different ways to access contents
 ## pivot.loc[('Expense', 'Adult Ed', 'Adult Ed')]
 ## pivot.loc[('Expense', 'Adult Ed', 'Library')]
@@ -60,75 +63,118 @@ pivot.head()
 ## df_match = list(df.InOrOut == 'Income')   # creates a list of TRUE/FALSE for matches
 ## df.loc[df_match]
 
-## simplest to separate committee and greensheet aggregation
-budget_committee  = budget.pivot_table(index=['InOrOut', 'Committee'], values='Budget', aggfunc=np.sum)
-budget_greensheet = budget.pivot_table(index=['InOrOut', 'GreenSheet'], values='Budget', aggfunc=np.sum)
 
-df = pivot.reset_index()
-##          if InOrOut == 'Income'  and    Committee       contains "Contributions", then sum "Budget" values
-sum(df.loc[(df.InOrOut == 'Income') & (df['Committee'].str.contains("Contributions"))]['Budget'])
-
-
-
-
-budget['date'] = pd.to_datetime(budget['date'])
-budget
 
 ##--------------------------------------------------
 ## read current year income and expense data
 actual_read = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
 actual_read = actual_read.dropna()  # option: how='all' only drops rows if all columns are na
+actual_read['Account'] = actual_read['Account'].str.strip()    # strip leading and trailing white space
 actual_read.columns = actual_read.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
 actual_read.columns
-nrows = len(actual_read)
-
-actual_read.iloc[1,2]      # extracts cell value at row 1, col 2
-actual_read.iloc[[1,2]]    # extracts rows 1 and 2
 
 ## remove garbage lines
 ## ~ in the following removes the lines; no ~ would find the lines
-actual_read[~actual_read['Account'].str.contains('total|Total|Transfers|Revenue minus expenses')]
-actual_read[~actual_read['Account'].str.contains('total|Total|Transfers|Revenue minus expenses')]
+## reindex dataframe to start at 0
+actual_read.index = range(len(actual_read.index))
 
 
-## reformat to columns of date, account, value
-## actual_read.head()
-account  = actual_read[['Account']].copy()  # single or double bracket to create series or dataframe, respectively
-daterange = pd.date_range(start='1/1/2023', end=dt.datetime.now(), freq='M')
+def stackit(df, daterange):
 
-actual = []
-for date in daterange:
-    temp = []
-    for j in range(1, len(actual_read.columns))-2:
-        ## create accountmonth dataframe with date, account, and value for month
-        ## first duplicate date using np but need to convert to a series for pandas
+    nrows = len(df)
+        
+    ## reformat to columns of date, account, value
+    ## df.head()
+    account  = df[['Account']].copy()  # single or double bracket to create series or dataframe, respectively
+
+    new = []
+    ## create accountmonth dataframe with date, account, and value for month
+    for date in daterange:
         daterepeated = pd.DataFrame({'date':pd.Series(np.repeat(date, nrows))})
-        value = pd.DataFrame({'value':actual_read.iloc[:,j]})
-        ## pd.concat used as cbind in R
-        temp = pd.concat([daterepeated, account, value], keys=['date', 'account', 'value'])
-    ## pd.concat used as rbind in R
-    actual = pd.concat([actual, temp])
+    
+        for j in np.r_[1:(len(df.columns)-1)]:
+            ## first duplicate date using np but need to convert to a series for pandas
+            value = pd.DataFrame({'value':df.iloc[:,j]})
+    
+            ## https://www.geeksforgeeks.org/how-to-concatenate-two-or-more-pandas-dataframes/
+            ## rbind = pd.concat([df1, df2], axis=0)
+            ## cbind = pd.concat([df1, df2], axis=1)
+            temp = pd.concat([daterepeated, account, value], axis=1, keys=['Date', 'Account', 'Value'])
+    
+        if len(new) > 0: 
+            ## pd.concat used as rbind in R
+            new = pd.concat([new, temp], axis=0)
+        else:
+            new = temp
+
+    return new
+
+daterange = pd.date_range(start='1/1/2023', end=dt.datetime.now(), freq='M')
+actual = stackit(actual_read, daterange)
+
 
 ##--------------------------------------------------
 ## read prior year income and expense data
-actual_read_prior = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
-actual_read_prior = actual_read_prior.dropna(how='all')  # how='all' only drops rows if all columns are na
-actual_read_prior.columns = actual_read_prior.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
-actual_read_prior.columns
+actual_read_old = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
+actual_read_old = actual_read_old.dropna(how='all')  # how='all' only drops rows if all columns are na
+actual_read_old.columns = actual_read_old.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+actual_read_old.columns
+
+## remove garbage lines
+## ~ in the following removes the lines; no ~ would find the lines
+actual_read_old = actual_read_old[-actual_read_old['Account'].str.contains('total|Total|Transfers|Revenue minus expenses|Other Financial Sources')]
+## reindex dataframe to start at 0
+actual_read_old.index = range(len(actual_read_old.index))
 
 ## reformat to columns of date, account, value
+daterange_old = pd.date_range(start='1/1/2022', end='12/31/2022', freq='M')
+actual_old = stackit(actual_read_old, daterange_old)
+
 
 ##--------------------------------------------------
 ## read investment data file
 
 
 ###################################################################
-## SELECT DATA FOR DATE RANGE
+## SELECT DATA FOR DATE RANGE FROM actual AND actual_old
+
+## import IPython
+## IPython.embed
+
+## raise SystemExit    # this exits the code
+start = '1/1/2023'
+end = '2/28/23'
+
+## select data for date range
+actual_use = actual.loc[(actual.Date > start) & (actual.Date <= end)]
+actual_old_use = actual_old.loc[(actual_old.Date > start) & (actual_old.Date <= end)]
+
+## calculate cumjlative actuals for last date
+actual.ytd = actual['Value'].cumsum
+actual_old.ytd = xxxx
+
+
+###################################################################
+## CREATE TABLE FOR OUTPUT
+
+## need to test how merge works when there are more or less entries in 2nd df
+pd.merge(budget, actual, on='Account')
+
+
+## Prepared dataframes: budget, actual, actual_old
+for inout in ['Income', 'Expense']:
+    for plot in list(budget.loc[(budget.InOrOut == inout) & (budget['Committee'].str.contains("Contributions"))]['Committee']))
+
+
+
+##          if InOrOut == 'Income'  and    Committee       contains "Contributions", then sum "Budget" values
+sum(budget.loc[(budget.InOrOut == 'Income') & (budget['Committee'].str.contains("Contributions"))]['Budget'])
+
 ## aggregate to determine total for each budget area
 ##      df.loc['2023'] gets all 2023 data
 ##      df.loc['2023', 'num'].sum() gets the total of column num in 2023
 ##      df['2023','num'].groupby('city').sum() gets the total of num by city
-df_budget = budget.loc[daterange, 'budget'].groupby('account').sum()
+df_budget = budget.loc[daterange, 'Budget'].groupby('GreenSheet').sum()
 
 ## match income and expense line item data to budget areas
 
