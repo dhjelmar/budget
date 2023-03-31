@@ -44,7 +44,6 @@ budget['Account'] = budget['Account'].str.strip()    # strip leading and trailin
 ## create another column with budget line item number only because database not consistent with descriptions
 budget['AccountNum'] = budget.Account.str.extract('(\d+)')
 
-
 ## ## sum totals for budget category and committee
 ## ## pivot table example
 ## df = pd.DataFrame({'Fruit': ['Apple', 'Apple', 'Banana', 'Orange'],
@@ -70,7 +69,6 @@ budget['AccountNum'] = budget.Account.str.extract('(\d+)')
 ## df = pivot.reset_index()
 ## df_match = list(df.InOrOut == 'Income')   # creates a list of TRUE/FALSE for matches
 ## df.loc[df_match]
-
 
 ##--------------------------------------------------
 # %% 
@@ -124,6 +122,7 @@ def stackit(df, daterange):
 daterange = pd.date_range(start='1/1/2023', end=dt.datetime.now(), freq='M')
 actual = stackit(actual_read, daterange)
 
+
 ##--------------------------------------------------
 # %% 
 ## read prior year income and expense data
@@ -155,20 +154,18 @@ actual_old = stackit(actual_read_old, daterange_old)
 # %%
 ## SELECT DATA FOR DATE RANGE FROM actual AND actual_old
 
-## import IPython
-## IPython.embed
-
-## raise SystemExit    # this exits the code
 start = '1/1/2023'
 end = '2/28/23'
-
-## select data for date range
 actual_use = actual.loc[(actual.Date > start) & (actual.Date <= end)]
-
 
 start = '1/1/2022'
 end = '12/31/22'
 actual_old_use = actual_old.loc[(actual_old.Date > start) & (actual_old.Date <= end)]
+
+## add InOrOut, GreenSheet, Committee, and SourceOfFunds fields
+## Need to do with if/then statements rather than merge
+## Then maybe add column for Entry = ['Budget', 'Current Year', 'Prior Year']
+
 
 ###################################################################
 # %%
@@ -191,14 +188,23 @@ e = pd.merge(d, c, how='outer', on='Key')
 
 ## full, outer join (i.e., include any line item in any dataframe) for budget, ytd, and ytd_old
 temp = pd.merge(budget, ytd, how='outer', on='AccountNum')
-table1 = pd.merge(temp, ytd_old, how='outer', on='AccountNum')
-table1 = table1.fillna(0)
+all = pd.merge(temp, ytd_old, how='outer', on='AccountNum')
+all = all.fillna(0)
 
 
 ## DLH STOPPED HERE
 ## Inspect bottom of table1. Need to somehow handle diappaering account numbers
 ## since they still need to be tallied with Committee or Greensheet.
 
+## create an arrray of values that can be cycled through for plots and tables
+plot_committee  = all.pivot_table(index=['InOrOut', 'Committee'], values='Budget', aggfunc=np.sum).reset_index()
+plot_greensheet = all.pivot_table(index=['InOrOut', 'GreenSheet'], values='Budget', aggfunc=np.sum).reset_index()
+
+## pivot = table1.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values=['Budget', 'YTD', 'Last YTD'], aggfunc=np.sum)
+for inout in list(plot_committee.InOrOut):
+    for plotit in list(plot_committee.Committee)
+        table = table1[(table1.InOrOut == inout) & (table1.Committee == plotit))]
+        
 
 
 # %%
