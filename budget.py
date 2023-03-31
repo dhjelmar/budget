@@ -1,3 +1,6 @@
+# %% 
+## the above defines the start of a notebook-like cell but in a regular text file
+## (requires ipykernel package)
 ###################################################################
 ## SETUP
 import pandas as pd
@@ -6,6 +9,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
+import regex as re
 
 ## ## create dataframe from two lists
 ## date = ['1/2/2022', '2/2/2022', '3/2/2022'] 
@@ -15,7 +19,7 @@ import numpy as np
 ## df = pd.DataFrame(data, columns=['date','nums']) 
 ## df
 
-###################################################################
+# ###################################################################
 ## CONTROL
 ## set daterange of interest
 ## e.g,. daterange = '2023'
@@ -24,9 +28,9 @@ import numpy as np
 daterange = '2023'
 ## pd.to_datetime(daterange)
 
-
 ###################################################################
-## READ DATA
+# %% 
+## READ BUDGET DATA
 
 ##--------------------------------------------------
 ## read budget file
@@ -36,6 +40,10 @@ budget = pd.read_excel('budget_2023.xlsx')
 ## only keep needed columns
 budget = budget[['Income or Expence', 'Budget category', 'Committee + Income Detail', 'Source of Funds', 'Line Items', '2023 Budget']]
 budget.columns = ['InOrOut',          'GreenSheet',      'Committee',                 'SourceOfFunds',   'Account',    'Budget']
+budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
+## create another column with budget line item number only because database not consistent with descriptions
+budget['AccountNum'] = budget.Account.str.extract('(\d+)')
+
 
 ## ## sum totals for budget category and committee
 ## ## pivot table example
@@ -64,8 +72,8 @@ budget.columns = ['InOrOut',          'GreenSheet',      'Committee',           
 ## df.loc[df_match]
 
 
-
 ##--------------------------------------------------
+# %% 
 ## read current year income and expense data
 actual_read = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
 actual_read = actual_read.dropna()  # option: how='all' only drops rows if all columns are na
@@ -75,8 +83,11 @@ actual_read.columns
 
 ## remove garbage lines
 ## ~ in the following removes the lines; no ~ would find the lines
+actual_read = actual_read[-actual_read['Account'].str.contains('total|Total|Revenue|Transfers')]
 ## reindex dataframe to start at 0
 actual_read.index = range(len(actual_read.index))
+## create column of account numbers
+actual_read['AccountNum'] = actual_read.Account.str.extract('(\d+)')
 
 
 def stackit(df, daterange):
@@ -85,21 +96,22 @@ def stackit(df, daterange):
         
     ## reformat to columns of date, account, value
     ## df.head()
-    account  = df[['Account']].copy()  # single or double bracket to create series or dataframe, respectively
-
+    accountnum  = df[['AccountNum']].copy()  # single or double bracket to create series or dataframe, respectively
+    account     = df[['Account']].copy()
+ 
     new = []
+    i = 0
     ## create accountmonth dataframe with date, account, and value for month
     for date in daterange:
-        daterepeated = pd.DataFrame({'date':pd.Series(np.repeat(date, nrows))})
+        i = i+1
+        ## first duplicate date using np but need to convert to a series for pandas
+        daterepeated = pd.DataFrame({'Date':pd.Series(np.repeat(date, nrows))})
+        value = pd.DataFrame({'Value':df.iloc[:,i]})
     
-        for j in np.r_[1:(len(df.columns)-1)]:
-            ## first duplicate date using np but need to convert to a series for pandas
-            value = pd.DataFrame({'value':df.iloc[:,j]})
-    
-            ## https://www.geeksforgeeks.org/how-to-concatenate-two-or-more-pandas-dataframes/
-            ## rbind = pd.concat([df1, df2], axis=0)
-            ## cbind = pd.concat([df1, df2], axis=1)
-            temp = pd.concat([daterepeated, account, value], axis=1, keys=['Date', 'Account', 'Value'])
+        ## https://www.geeksforgeeks.org/how-to-concatenate-two-or-more-pandas-dataframes/
+        ## rbind = pd.concat([df1, df2], axis=0)
+        ## cbind = pd.concat([df1, df2], axis=1)
+        temp = pd.concat([daterepeated, account, accountnum, value], axis=1)
     
         if len(new) > 0: 
             ## pd.concat used as rbind in R
@@ -112,30 +124,35 @@ def stackit(df, daterange):
 daterange = pd.date_range(start='1/1/2023', end=dt.datetime.now(), freq='M')
 actual = stackit(actual_read, daterange)
 
-
 ##--------------------------------------------------
+# %% 
 ## read prior year income and expense data
 actual_read_old = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
-actual_read_old = actual_read_old.dropna(how='all')  # how='all' only drops rows if all columns are na
+actual_read_old = actual_read_old.dropna()  # how='all' only drops rows if all columns are na
+actual_read_old['Account'] = actual_read_old['Account'].str.strip()    # strip leading and trailing white space
 actual_read_old.columns = actual_read_old.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
 actual_read_old.columns
 
 ## remove garbage lines
 ## ~ in the following removes the lines; no ~ would find the lines
-actual_read_old = actual_read_old[-actual_read_old['Account'].str.contains('total|Total|Transfers|Revenue minus expenses|Other Financial Sources')]
+actual_read_old = actual_read_old[-actual_read_old['Account'].str.contains('total|Total|Revenue|Transfers')]
 ## reindex dataframe to start at 0
 actual_read_old.index = range(len(actual_read_old.index))
+
+## create column of account numbers
+actual_read_old['AccountNum'] = actual_read_old.Account.str.extract('(\d+)')
 
 ## reformat to columns of date, account, value
 daterange_old = pd.date_range(start='1/1/2022', end='12/31/2022', freq='M')
 actual_old = stackit(actual_read_old, daterange_old)
 
-
 ##--------------------------------------------------
-## read investment data file
+# %% 
+## read investment data file  (NOT CODED YET)
 
 
 ###################################################################
+# %%
 ## SELECT DATA FOR DATE RANGE FROM actual AND actual_old
 
 ## import IPython
@@ -147,20 +164,46 @@ end = '2/28/23'
 
 ## select data for date range
 actual_use = actual.loc[(actual.Date > start) & (actual.Date <= end)]
+
+
+start = '1/1/2022'
+end = '12/31/22'
 actual_old_use = actual_old.loc[(actual_old.Date > start) & (actual_old.Date <= end)]
 
-## calculate cumjlative actuals for last date
-actual.ytd = actual['Value'].cumsum
-actual_old.ytd = xxxx
-
-
 ###################################################################
+# %%
 ## CREATE TABLE FOR OUTPUT
+## use pivot table to sum ytd totals
+## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
+ytd = actual_use.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
+ytd.columns = ['AccountNum', 'Account YTD', 'YTD']
+ytd_old = actual_old_use.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
+ytd_old.columns = ['AccountNum', 'Account Last YTD', 'Last YTD']
 
-## need to test how merge works when there are more or less entries in 2nd df
-pd.merge(budget, actual, on='Account')
+'''
+## Example of full outer join
+a = pd.DataFrame({'Key':['one', 'two', 'three'], 'A1':['1', '2', '3'], 'A2':['4', '5', '6']})
+b = pd.DataFrame({'Key':['one', 'three', 'four'], 'YTD':['10', '20', '30']})
+c = pd.DataFrame({'Key':['one', 'two', 'four', 'five'], 'Last YTD':['100', '200', '300', '400']})
+d = pd.merge(a, b, how='outer', on=['Key'])
+e = pd.merge(d, c, how='outer', on='Key')
+'''
+
+## full, outer join (i.e., include any line item in any dataframe) for budget, ytd, and ytd_old
+temp = pd.merge(budget, ytd, how='outer', on='AccountNum')
+table1 = pd.merge(temp, ytd_old, how='outer', on='AccountNum')
+table1 = table1.fillna(0)
 
 
+## DLH STOPPED HERE
+## Inspect bottom of table1. Need to somehow handle diappaering account numbers
+## since they still need to be tallied with Committee or Greensheet.
+
+
+
+# %%
+
+'''
 ## Prepared dataframes: budget, actual, actual_old
 for inout in ['Income', 'Expense']:
     for plot in list(budget.loc[(budget.InOrOut == inout) & (budget['Committee'].str.contains("Contributions"))]['Committee']))
@@ -341,3 +384,4 @@ if answer in ('y', 'Y', 'yes', ''):
 
 figs
 fig
+'''
