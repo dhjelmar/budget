@@ -1,6 +1,4 @@
-# %% 
-## the above defines the start of a notebook-like cell but in a regular text file
-## (requires ipykernel package)
+# %%   # Jupyter-like notebook in text file using ipython extension and ipykernel package
 ###################################################################
 ## SETUP
 import pandas as pd
@@ -10,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import regex as re
+os.getcwd()
 
 ## ## create dataframe from two lists
 ## date = ['1/2/2022', '2/2/2022', '3/2/2022'] 
@@ -38,8 +37,8 @@ daterange = '2023'
 budget = pd.read_excel('budget_2023.xlsx')
 ## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
 ## only keep needed columns
-budget = budget[['Income or Expence', 'Budget category', 'Committee + Income Detail', 'Source of Funds', 'Line Items', '2023 Budget']]
-budget.columns = ['InOrOut',          'GreenSheet',      'Committee',                 'SourceOfFunds',   'Account',    'Budget']
+budget = budget[['Income or Expence', 'Category', 'Budget category', 'Committee + Income Detail', 'Source of Funds', 'Line Items', '2023 Budget']]
+budget.columns = ['InOrOut',          'Category', 'GreenSheet',      'Committee',                 'SourceOfFunds',   'Account',    'Budget']
 budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
 ## create another column with budget line item number only because database not consistent with descriptions
 budget['AccountNum'] = budget.Account.str.extract('(\d+)')
@@ -191,6 +190,32 @@ temp = pd.merge(budget, ytd, how='outer', on='AccountNum')
 all = pd.merge(temp, ytd_old, how='outer', on='AccountNum')
 all = all.fillna(0)
 
+# %%
+keep = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']].copy()
+keep.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']
+desc = keep.loc[:, ['a', 'b', 'c', 'SourceOfFunds']]
+nums = keep.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD']]
+
+## create multiindex for nums with subtotals then flatten again
+## the following was copied from online where 'a', 'b', and 'c' were the index columns
+## not sure how to generalize for other options, so I stuck with using a, b and c
+totals = pd.concat([
+        nums.assign(
+            **{x: '_Total' for x in 'abc'[i:]}
+        ).groupby(list('abc')).sum() for i in range(4)
+    ]).sort_index()
+totals = totals.reset_index()
+
+## combine desc and totals then rename a, b, c
+multi = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
+multi.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD']
+
+## create multiindex
+multi = multi.set_index(['InOrOut', 'Category'])
+
+multi.to_excel('budget_multi.xlsx')
+
+# %%
 
 ## DLH STOPPED HERE
 ## Inspect bottom of table1. Need to somehow handle diappaering account numbers
