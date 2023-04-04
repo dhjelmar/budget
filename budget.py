@@ -168,7 +168,7 @@ actual_old_use = actual_old.loc[(actual_old.Date > start) & (actual_old.Date <= 
 
 ###################################################################
 # %%
-## CREATE TABLE FOR OUTPUT
+## CREATE TABLE DATAFRAME FOR OUTPUT
 ## use pivot table to sum ytd totals
 ## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
 ytd = actual_use.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
@@ -190,7 +190,7 @@ temp = pd.merge(budget, ytd, how='outer', on='AccountNum')
 all = pd.merge(temp, ytd_old, how='outer', on='AccountNum')
 all = all.fillna(0)
 
-# %%
+## select only those columns to keep and rename 1st 3 to a, b, c
 keep = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']].copy()
 keep.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']
 desc = keep.loc[:, ['a', 'b', 'c', 'SourceOfFunds']]
@@ -213,28 +213,192 @@ multi.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'Y
 ## create multiindex
 multi = multi.set_index(['InOrOut', 'Category'])
 
+## write details to Excel file
 multi.to_excel('budget_multi.xlsx')
 
+## print one table
+print(multi.loc[('Expense', 'Adult Ed')])
+
 # %%
+## create figure object
 
-## DLH STOPPED HERE
-## Inspect bottom of table1. Need to somehow handle diappaering account numbers
-## since they still need to be tallied with Committee or Greensheet.
 
-## create an arrray of values that can be cycled through for plots and tables
-plot_committee  = all.pivot_table(index=['InOrOut', 'Committee'], values='Budget', aggfunc=np.sum).reset_index()
-plot_greensheet = all.pivot_table(index=['InOrOut', 'GreenSheet'], values='Budget', aggfunc=np.sum).reset_index()
+## start over the work below with info from here:
+## https://realpython.com/python-matplotlib-guide/
+
+
+## set figure size
+fig.set_figheight(11)
+fig.set_figwidth(8)
+
+## extract budget value
+b = multi.loc[(multi.index   == ('Expense', 'Adult Ed')) &
+              (multi.Account == '_Total'), 
+              'Budget'].values
+
+fig, ax0 = plt.figure()
+
+# create grid for different subplots
+spec = gridspec.GridSpec(ncols=2, nrows=2,
+                         width_ratios=[1, 2], wspace=0.5,
+                         hspace=0.5, height_ratios=[1, 1])
+ 
+# initializing x,y axis value
+x = [0,0]
+y = ['12/31/23', b]
+ 
+# ax0 will take 0th position in
+# geometry(Grid we created for subplots),
+# as we defined the position as "spec[0]"
+ax0 = fig.add_subplot(spec[0])
+ax0.plot(x, y)
+
+plt.show()
+
+
+
+'''
+# %%
+## Create Table Object
+ax =plt.subplots(1,1)
+data=[[1,2,3],
+      [9,1,8],
+      [6,5,4]]
+column_labels=["Col 1", "Col 2", "Col 3"]
+
+#creating a 2-dimensional dataframe out of the given data
+df=pd.DataFrame(data,columns=column_labels)
+
+ax.axis('tight') #turns off the axis lines and labels
+ax.axis('off') #changes x and y axis limits such that all data is shown
+
+#plotting data
+table = ax.table(cellText=df.values,
+        colLabels=df.columns,
+        rowLabels=["Row 1","Row 2","Row 3"],
+        rowColours =["yellow"] * 3,
+        colColours =["red"] * 3,
+        loc="center")
+table.set_fontsize(14)
+table.scale(1,2)
+plt.show()
+
+
+
+
+
+
+
+
+
+
+# %%
+## create figure
+## https://www.geeksforgeeks.org/how-to-create-different-subplot-sizes-in-matplotlib/
+from matplotlib import gridspec
+
+# create a figure
+fig = plt.figure()
+ 
+# to change size of subplot's
+# set height of each subplot as 8
+fig.set_figheight(11)
+ 
+# set width of each subplot as 8
+fig.set_figwidth(8)
+ 
+# create grid for different subplots
+spec = gridspec.GridSpec(ncols=2, nrows=2,
+                         width_ratios=[1, 2], wspace=0.5,
+                         hspace=0.5, height_ratios=[1, 1])
+ 
+# initializing x,y axis value
+x = np.arange(0, 10, 0.1)
+y = np.cos(x)
+ 
+# ax0 will take 0th position in
+# geometry(Grid we created for subplots),
+# as we defined the position as "spec[0]"
+ax0 = fig.add_subplot(spec[0])
+ax0.plot(x, y)
+ 
+# ax1 will take 0th position in
+# geometry(Grid we created for subplots),
+# as we defined the position as "spec[1]"
+ax1 = fig.add_subplot(spec[1])
+ax1.plot(x, y)
+ 
+# ax2 will take 0th position in
+# geometry(Grid we created for subplots),
+# as we defined the position as "spec[2]"
+ax2 = fig.add_subplot(spec[2])
+ax2.plot(x, y)
+ 
+# ax3 will take 0th position in
+# geometry(Grid we created for subplots),
+# as we defined the position as "spec[3]"
+ax3 = fig.add_subplot(spec[3])
+ax3.plot(x, y)
+ 
+# display the plots
+plt.show()
+
+# %%
+## Create Table Object
+## https://www.scaler.com/topics/matplotlib/matplotlib-table/
+fig, ax =plt.subplots(1,1)
+data=[[1,2,3],
+      [9,1,8],
+      [6,5,4]]
+column_labels=["Col 1", "Col 2", "Col 3"]
+
+#creating a 2-dimensional dataframe out of the given data
+df=pd.DataFrame(data,columns=column_labels)
+
+ax.axis('tight') #turns off the axis lines and labels
+ax.axis('off') #changes x and y axis limits such that all data is shown
+
+#plotting data
+table = ax.table(cellText=df.values,
+        colLabels=df.columns,
+        rowLabels=["Row 1","Row 2","Row 3"],
+        rowColours =["yellow"] * 3,
+        colColours =["red"] * 3,
+        loc="center")
+table.set_fontsize(14)
+table.scale(1,2)
+plt.show()
+
+
+
+# %%
+## PLOT and TABLE function
+def plottable(df, title):
+    '''
+    function: plottable
+    description: creates a figure object and corersponding table object
+    '''
+    plt.figure()
+    plt.subplot(221)
+    plt.plot(x, y)
+    plt.yscale('linear')
+    plt.title(title)
+    plt.grid(True)
+
+
+
+
 
 ## pivot = table1.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values=['Budget', 'YTD', 'Last YTD'], aggfunc=np.sum)
-for inout in list(plot_committee.InOrOut):
-    for plotit in list(plot_committee.Committee)
-        table = table1[(table1.InOrOut == inout) & (table1.Committee == plotit))]
+for inout in ['Expense', 'Income']:
+    for category in list(multi.Category)
+        table = multi[(multi.InOrOut == inout) & (multi.Category == category))]
         
 
 
 # %%
 
-'''
+
 ## Prepared dataframes: budget, actual, actual_old
 for inout in ['Income', 'Expense']:
     for plot in list(budget.loc[(budget.InOrOut == inout) & (budget['Committee'].str.contains("Contributions"))]['Committee']))
@@ -345,7 +509,7 @@ def plot_funcs(x, functions, funcnames, max_col, max_row):
     so.
     """
 
-    ##amount of functions  to put in one plot    
+    ##amount of functions to put in one plot    
     N = max_col*max_row
 
     ##created figures go here
