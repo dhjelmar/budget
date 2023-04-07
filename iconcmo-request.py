@@ -4,10 +4,13 @@
 
 # %%
 ## standard packages
-import pandas as pd
+import pandas as pd     # needed to install package
 ## import packages
-import requests
+import requests         # needed to install package
 import json
+## for erase function
+import sys 
+import ctypes
 
 
 # %%
@@ -18,7 +21,16 @@ if ('username' not in locals()) | ('password' not in locals()):
     username = input("Input user name:")
     password = input("Input password:")
 
+def erase(var_to_erase):
+    strlen = len(var_to_erase)
+    offset = sys.getsizeof(var_to_erase) - strlen - 1
+    ctypes.memset(id(var_to_erase) + offset, 0, strlen)
+    del var_to_erase               # derefrencing the pointer.
 
+eraseit = True
+if eraseit == True:
+    erase(username)
+    erase(password)
 
 # %%
 ## issue request through api
