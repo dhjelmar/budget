@@ -1,6 +1,24 @@
-# %%   # Jupyter-like notebook in text file using ipython extension and ipykernel package
-###################################################################
-## SETUP
+# %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
+# ## Budget Vs. Actual Spending
+
+# + User input for budget Excel file with following columns:
+#   + xxxxxx
+#   + xxxxxx
+#   + xxxxxx
+#   + xxxxxx
+# + User input for budget year and comparison year
+# + Reads budget from Excel
+# + Reads actual spending for budget and comparison years from ICONCMO API
+# + Creates
+#   + Table and figures to compare at high level
+#   + Table and figures to compare for line items
+
+
+
+# %% 
+## import packages and set year of interest and comparison year
+
+## import packages
 import pandas as pd
 import datetime as dt
 import seaborn as sns
@@ -18,30 +36,44 @@ os.getcwd()
 ## df = pd.DataFrame(data, columns=['date','nums']) 
 ## df
 
-# ###################################################################
-## CONTROL
-## set daterange of interest
-## e.g,. daterange = '2023'
-##       daterange = '2022:2023'
+####################################################################
+## Set year of interest
 ## https://towardsdatascience.com/working-with-datetime-in-pandas-dataframe-663f7af6c587
-daterange = '2023'
-## pd.to_datetime(daterange)
+
+## budget year
+year = 2023
+budgetfile = 'budget_'+str(year)+'.xlsx'
+start = dt.datetime.strptime('1/1/'+str(year), '%m/%d/%Y').date()
+end = dt.datetime.now().date()
+
+## comparison year
+yearc = year - 1
+startc = dt.datetime.strptime('1/1/'  +str(yearc), '%m/%d/%Y').date()
+endc   = dt.datetime.strptime('12/31/'+str(yearc), '%m/%d/%Y').date()
+print('budget file     (budgetfile):', budgetfile)
+print('budget year     (year      ):', year)
+print('comparison year (yearc     ):', yearc)
 
 ###################################################################
 # %% 
-## READ BUDGET DATA
+# ## READ BUDGET DATA INTO DATAFRAME: budget
 
 ##--------------------------------------------------
 ## read budget file
 ## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
-budget = pd.read_excel('budget_2023.xlsx')
+budget = pd.read_excel(budgetfile)
 ## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
 ## only keep needed columns
 budget = budget[['Income or Expence', 'Category', 'Budget category', 'Committee + Income Detail', 'Source of Funds', 'Line Items', '2023 Budget']]
+
+## rename columns
 budget.columns = ['InOrOut',          'Category', 'GreenSheet',      'Committee',                 'SourceOfFunds',   'Account',    'Budget']
+print('Renamed and kept some columns')
 budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
 ## create another column with budget line item number only because database not consistent with descriptions
 budget['AccountNum'] = budget.Account.str.extract('(\d+)')
+
+print(budget.head())
 
 ## ## sum totals for budget category and committee
 ## ## pivot table example
@@ -71,7 +103,7 @@ budget['AccountNum'] = budget.Account.str.extract('(\d+)')
 
 ##--------------------------------------------------
 # %% 
-## read current year income and expense data
+## read current year income and expense data into dataframe: actual
 actual_read = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
 actual_read = actual_read.dropna()  # option: how='all' only drops rows if all columns are na
 actual_read['Account'] = actual_read['Account'].str.strip()    # strip leading and trailing white space
@@ -118,13 +150,27 @@ def stackit(df, daterange):
 
     return new
 
-daterange = pd.date_range(start='1/1/2023', end=dt.datetime.now(), freq='M')
+daterange = pd.date_range(start=start, end=end, freq='M')
 actual = stackit(actual_read, daterange)
 
+## reindex
+actual.index = range(len(actual.index))
+
+## convert date column to date type
+actual['Date']= pd.to_datetime(actual['Date']).dt.date  # dt.date needed to convert datetime to date format
+
+## map budget category to 'actual' dataframe
+mapdf = budget.loc[:, ('InOrOut', 'Category', 'AccountNum')]
+temp = pd.merge(actual, mapdf, how='left', on='AccountNum')
+actual = temp
+
+print('daterange =', daterange)
+print('')
+print(actual.head())
 
 ##--------------------------------------------------
 # %% 
-## read prior year income and expense data
+## read prior year income and expense data into: actual_old
 actual_read_old = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
 actual_read_old = actual_read_old.dropna()  # how='all' only drops rows if all columns are na
 actual_read_old['Account'] = actual_read_old['Account'].str.strip()    # strip leading and trailing white space
@@ -141,8 +187,22 @@ actual_read_old.index = range(len(actual_read_old.index))
 actual_read_old['AccountNum'] = actual_read_old.Account.str.extract('(\d+)')
 
 ## reformat to columns of date, account, value
-daterange_old = pd.date_range(start='1/1/2022', end='12/31/2022', freq='M')
+daterange_old = pd.date_range(start=startc, end=endc, freq='M')
 actual_old = stackit(actual_read_old, daterange_old)
+
+## reindex dataframe to start at 0
+actual_read_old.index = range(len(actual_read_old.index))
+
+## convert date column to date type
+actual_old['Date']= pd.to_datetime(actual_old['Date']).dt.date
+
+## map budget category to 'actual' dataframe
+temp = pd.merge(actual_old, mapdf, how='left', on='AccountNum')
+actual_old = temp
+
+print('daterange_old =', daterange_old)
+print('')
+print(actual_old.head())
 
 ##--------------------------------------------------
 # %% 
@@ -151,15 +211,10 @@ actual_old = stackit(actual_read_old, daterange_old)
 
 ###################################################################
 # %%
-## SELECT DATA FOR DATE RANGE FROM actual AND actual_old
+## PROBABLY NOT NEEDED: SELECT DATA FOR DATE RANGE FROM actual AND actual_old: actual_use, actual_old_use
 
-start = '1/1/2023'
-end = '2/28/23'
 actual_use = actual.loc[(actual.Date > start) & (actual.Date <= end)]
-
-start = '1/1/2022'
-end = '12/31/22'
-actual_old_use = actual_old.loc[(actual_old.Date > start) & (actual_old.Date <= end)]
+actual_old_use = actual_old.loc[(actual_old.Date > startc) & (actual_old.Date <= endc)]
 
 ## add InOrOut, GreenSheet, Committee, and SourceOfFunds fields
 ## Need to do with if/then statements rather than merge
@@ -168,7 +223,7 @@ actual_old_use = actual_old.loc[(actual_old.Date > start) & (actual_old.Date <= 
 
 ###################################################################
 # %%
-## CREATE TABLE DATAFRAME FOR OUTPUT
+## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 ## use pivot table to sum ytd totals
 ## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
 ytd = actual_use.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
@@ -190,11 +245,14 @@ temp = pd.merge(budget, ytd, how='outer', on='AccountNum')
 all = pd.merge(temp, ytd_old, how='outer', on='AccountNum')
 all = all.fillna(0)
 
-## select only those columns to keep and rename 1st 3 to a, b, c
-keep = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']].copy()
-keep.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']
-desc = keep.loc[:, ['a', 'b', 'c', 'SourceOfFunds']]
-nums = keep.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD']]
+## select columns to keep
+table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']].copy()
+
+## rename 1st 3 to a, b, c
+temp = table.copy()
+temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']
+desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds']]
+nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD']]
 
 ## create multiindex for nums with subtotals then flatten again
 ## the following was copied from online where 'a', 'b', and 'c' were the index columns
@@ -207,19 +265,146 @@ totals = pd.concat([
 totals = totals.reset_index()
 
 ## combine desc and totals then rename a, b, c
-multi = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
-multi.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD']
+table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
+table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD']
 
 ## create multiindex
-multi = multi.set_index(['InOrOut', 'Category'])
+table_totals = table_totals.set_index(['InOrOut', 'Category'])
 
 ## write details to Excel file
-multi.to_excel('budget_multi.xlsx')
+table_totals.to_excel('budget_table_totals.xlsx')
 
 ## print one table
-print(multi.loc[('Expense', 'Adult Ed')])
+print(table_totals.loc[('Expense', 'Adult Ed')])
+
+
+# %% 
+## create printable versions of tables: table_totals_print
+
+def dollars(x):
+    ## converts a number to currency but as a string
+    ## return "${:.1f}K".format(x/1000)
+    return "${:,.0f}".format(x)
+
+table_totals_print = table_totals.copy()
+table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars)
+table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars)
+table_totals_print['YTD']      = table_totals_print['YTD'].apply(dollars)
+
+print(table_totals_print)
+
 
 # %%
+## get summary view of table_totals: table_totals_summary, table_totals_summary_print
+table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], values=['Budget', 'YTD', 'Last YTD'], aggfunc=np.sum)
+
+def dollars(x):
+    ## converts a number to currency but as a string
+    ## return "${:.1f}K".format(x/1000)
+    return "${:,.0f}".format(x)
+
+table_totals_summary_print = table_totals_summary.copy()
+table_totals_summary_print['Budget'] = table_totals_summary_print['Budget'].apply(dollars)
+table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(dollars)
+table_totals_summary_print['YTD'] = table_totals_summary_print['YTD'].apply(dollars)
+
+print(table_totals_summary_print)
+    
+
+# %%
+## export tables to Excel
+table_totals.to_excel(r'budget_out.xlsx', sheet_name='table_totals', index=True)
+## append another sheet
+with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
+    table_totals_summary.to_excel(writer, sheet_name='table_totals_summary')
+
+
+# %%
+## create plots
+
+## collect ytd and ytd_old info by date, and in/out and category
+dfactual     = actual.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+dfactual_old = actual_old.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+
+## seaborn plots and tables
+for inout in ['Expense', 'Income']:
+    for category in list(budget.Category.unique()):
+        ## create dataframe of budget category as a function of time
+        ## date    value legend
+        ## 1/1/22  $0   budget
+        ## 1/1/22  $44  budget
+        ## 1/1/22  $0   prior year
+        ## 1/1/22  $0   current year
+
+        ## extract budget value
+        budget_value = table_totals_summary.loc[(inout, category), 'Budget']
+        dfbudget = pd.DataFrame({"Date":[start, end],
+                                 "Value": [0, budget_value],
+                                 "Legend": ['Budget', 'Budget']})
+        
+        ## extract actual values
+        dfactual = dfactual.loc[(dfactual.InOrOut == 'Expense') & (dfactual.Category == 'Adult Ed'),:]
+        dfactual = dfactual[['Date', 'Value']]
+        dfactual.Legend = 'YTD'
+        
+        ## extract actual old values
+        dfactual_old = dfactual_old.loc[(dfactual_old.InOrOut == 'Expense') & (dfactual_old.Category == 'Adult Ed'),:]
+        dfactual_old = dfactual_old[['Date', 'Value']]
+        dfactual_old.Legend = 'Last YTD'
+        
+        ## combine dataframes for plotting
+        ## rbind = pd.concat([df1, df2], axis=0)
+        df_plot = pd.concat([dfbudget, dfactual, dfactual_old], axis=0)
+
+        ## select associated table with budget, YTD, and last YTD by account
+        df_table = table_totals.loc[(inout, category)]
+        df_table.index = range(len(df_table.index))
+
+        ## create plot
+        #fig, ax = plt.subplots(nrows=1, ncols=1)  # nrows=1 is the default
+        #sns.scatterplot(data=df_plot, x='assists', y='points', hue='team', ax=ax)
+
+        ## add table
+        #table = plt.table(cellText=df.values,
+        #                  rowLabels=df.index,
+        #                  colLabels=df.columns, 
+        #                  ## bbox=(.2, -.7, 0.5, 0.5)) # below table
+        #                  bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
+
+
+
+
+#fig,ax = plt.subplots(nrows=n, ncols=1, figsize=(8,11), sharex=False)  # sharex=FALSE to have different range on each x-axis
+#for i in range(n):
+#    plt.sca(ax[i])
+#    sns.lineplot(data=df, x='assists', y='points', hue='team'
+#                ).set(title='Expense - Adult Ed\nSeaborn')
+#    table = plt.table(cellText=df.values,
+#                rowLabels=df.index,
+#                colLabels=df.columns, 
+#                bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
+#    plt.tight_layout() # can be needed to avoid crowding axis labels
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# %%
+
+
+'''
 ## create figure object
 
 
@@ -227,16 +412,16 @@ print(multi.loc[('Expense', 'Adult Ed')])
 ## https://realpython.com/python-matplotlib-guide/
 
 
-## set figure size
-fig.set_figheight(11)
-fig.set_figwidth(8)
-
 ## extract budget value
 b = multi.loc[(multi.index   == ('Expense', 'Adult Ed')) &
               (multi.Account == '_Total'), 
               'Budget'].values
 
 fig, ax0 = plt.figure()
+
+## set figure size
+fig.set_figheight(11)
+fig.set_figwidth(8)
 
 # create grid for different subplots
 spec = gridspec.GridSpec(ncols=2, nrows=2,
@@ -257,8 +442,10 @@ plt.show()
 
 
 
-'''
+
+
 # %%
+
 ## Create Table Object
 ax =plt.subplots(1,1)
 data=[[1,2,3],
