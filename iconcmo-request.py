@@ -27,41 +27,59 @@ def erase(var_to_erase):
     ctypes.memset(id(var_to_erase) + offset, 0, strlen)
     del var_to_erase               # derefrencing the pointer.
 
+
+# %%
+## issue request through api
+
+## query function
+def query(phonenumber, username, password, module, section):
+    query = {"Auth": {"Phone": phonenumber, "Username": username, "Password": password}
+            ,"Request": {"Module": module, "Section": section}}
+
+    # turn the query into JSON format
+    out = json.dumps(query)
+
+    # Send the request
+    r = requests.get(url, data=out, headers={'Content-Type': 'application/json'})
+
+    # convert to json
+    data = r.json()
+    
+    return data, r
+
+## submit 1st query to api
+data1, r1 = query(phonenumber, username, password, "GL", "Accounts")
+print(r1.status_code)
+print(r1.headers)
+print(r1.content)
+
+
+# %%
+## submit 2nd query to api
+data2, r2 = query(phonenumber, username, password, "GL", "Register")
+print(r2.status_code)
+print(r2.headers)
+print(r2.content)
+
+
+
+# %%
+## erase username and password
 eraseit = True
 if eraseit == True:
     erase(username)
     erase(password)
 
-# %%
-## issue request through api
-module = "GL"
-section = "Accounts"
-
-query = {"Auth": {"Phone": phonenumber, "Username": username, "Password": password},
-         "Request": {"Module": module, "Section": section}}
-
-# turn the query into JSON format
-query = json.dumps(query)
-
-# Send the request
-r = requests.get(url, data=query, headers={'Content-Type': 'application/json'})
-
-print(r.status_code)
-print(r.headers)
-print(r.content)
-
 
 # %%
-data = r.json()
-
 # print the mail_to line of the 0th returned data element
-print(data['statistics'])
-print(data['accounts'][0])
+print(data1['statistics'])
+print(data1['accounts'][0])
 
 # %%
 
-print(data.keys())              # one of the keys is 'accounts'
-accounts = data['accounts']
+print(data1.keys())              # one of the keys is 'accounts'
+accounts = data1['accounts']
 df = pd.DataFrame.from_dict(accounts)
 
 # %%
