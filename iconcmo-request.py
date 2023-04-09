@@ -12,12 +12,15 @@ import json
 import sys 
 import ctypes
 
+username = ""
+password = ""
 
 # %%
 ## input phonenumber, username, and password to access api
 url = 'https://secure3.iconcmo.com/api/'
 phonenumber = "5183772201"
-if ('username' not in locals()) | ('password' not in locals()):
+## if ('username' not in locals()) | ('password' not in locals()):
+if (username == "") | (password == ""):
     username = input("Input user name:")
     password = input("Input password:")
 
@@ -47,20 +50,30 @@ def query(phonenumber, username, password, module, section):
     
     return data, r
 
+
+# %%
 ## submit 1st query to api
 data1, r1 = query(phonenumber, username, password, "GL", "Accounts")
 print(r1.status_code)
 print(r1.headers)
 print(r1.content)
 
+## write r1 to file
+with open('budget_r1.txt','w') as fd:
+    fd.write(r1.text)
+
 
 # %%
 ## submit 2nd query to api
+
 data2, r2 = query(phonenumber, username, password, "GL", "Register")
 print(r2.status_code)
 print(r2.headers)
 print(r2.content)
 
+## write r2 to file
+with open('budget_r2.txt','w') as fd:
+    fd.write(r2.text)
 
 
 # %%
