@@ -46,7 +46,10 @@ def query(phonenumber, username, password, module, section):
     r = requests.get(url, data=out, headers={'Content-Type': 'application/json'})
 
     # convert to json
-    data = r.json()
+    if section == 'Accounts':
+        data = r.json()
+    else:
+        data = 'data not defined'   # r.json() fails if section == 'Register'
     
     return data, r
 
@@ -71,9 +74,14 @@ print(r2.status_code)
 print(r2.headers)
 print(r2.content)
 
+
+# %%
 ## write r2 to file
-with open('budget_r2.txt','w') as fd:
-    fd.write(r2.text)
+import pickle
+with open('budget_r2.txt','wb') as fd:
+    pickle.dump(r2, fd)  
+
+
 
 
 # %%
