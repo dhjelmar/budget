@@ -16,8 +16,6 @@
 
 
 # %% 
-## import packages and set year of interest and comparison year
-
 ## import packages
 import pandas as pd
 import datetime as dt
@@ -28,37 +26,53 @@ import numpy as np
 import regex as re
 os.getcwd()
 
-## ## create dataframe from two lists
-## date = ['1/2/2022', '2/2/2022', '3/2/2022'] 
-## nums = [10,20,30] 
-## data = list(zip(date, nums)) 
-## data 
-## df = pd.DataFrame(data, columns=['date','nums']) 
-## df
 
 ####################################################################
-## Set year of interest
+# %% [markdown]
+## Set budget and comparison year start and end dates
+
+# %%
 ## https://towardsdatascience.com/working-with-datetime-in-pandas-dataframe-663f7af6c587
 
-## budget year
-year = 2023
-budgetfile = 'budget_'+str(year)+'.xlsx'
-start = dt.datetime.strptime('1/1/'+str(year), '%m/%d/%Y').date()
-end = dt.datetime.now().date()
+default = input('Press enter or escape to use current and prior year budget and comparison.\n'
+                'Enter "x" (or anything else) to set start and end dates.')
+if default == "":
+    ## budget year
+    start = dt.date(dt.date.today().year, 1, 1)
+    end   = dt.date(dt.date.today().year, 12, 31)
+    ## comparison year
+    startc = dt.date(dt.date.today().year-1, 1, 1)
+    endc   = dt.date(dt.date.today().year-1, 12, 31)
 
-## comparison year
-yearc = year - 1
-startc = dt.datetime.strptime('1/1/'  +str(yearc), '%m/%d/%Y').date()
-endc   = dt.datetime.strptime('12/31/'+str(yearc), '%m/%d/%Y').date()
-print('budget file     (budgetfile):', budgetfile)
-print('budget year     (year      ):', year)
-print('comparison year (yearc     ):', yearc)
+else:
+    start  = input('Enter start date for budget     year (mm/dd/yyyy):')
+    end    = input('Enter end   date for budget     year (mm/dd/yyyy):')
+    startc = input('Enter start date for comparison year (mm/dd/yyyy):')
+    endc   = input('Enter end   date for comparison year (mm/dd/yyyy):')
+
+    ## convert to dates
+    start  = dt.datetime.strptime(start , '%m/%d/%Y').date()
+    end    = dt.datetime.strptime(end   , '%m/%d/%Y').date()
+    startc = dt.datetime.strptime(startc, '%m/%d/%Y').date()
+    endc   = dt.datetime.strptime(endc  , '%m/%d/%Y').date()
+
+year = start.year
+budgetfile = 'budget_' + str(year) + '.xlsx'
+alternate = input('Press enter to use following for budget: ' + budgetfile)
+if alternate != "":
+    budgetfile = alternate
+
+print('budget file     :', budgetfile)
+print('budget start    :', start)
+print('budget end      :', end)
+print('comparison start:', startc)
+print('comparison end  :', endc)
 
 ###################################################################
-# %% 
+# %% [markdown]
 # ## READ BUDGET DATA INTO DATAFRAME: budget
 
-##--------------------------------------------------
+# %%
 ## read budget file
 ## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
 budget = pd.read_excel(budgetfile)
@@ -101,7 +115,27 @@ print(budget.head())
 ## df_match = list(df.InOrOut == 'Income')   # creates a list of TRUE/FALSE for matches
 ## df.loc[df_match]
 
-##--------------------------------------------------
+
+###################################################################
+# %% [markdown]
+## Obtain ICON entries for budget year and comparison year
+
+
+# %%
+# import icon.py so have access to icon()
+
+import icon
+actual, actualc = icon.icon(start, end, startc, endc)
+
+#execfile('iconcmo-request.py')
+
+
+
+
+
+
+
+'''
 # %% 
 ## read current year income and expense data into dataframe: actual
 actual_read = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
@@ -170,7 +204,7 @@ print(actual.head())
 
 ##--------------------------------------------------
 # %% 
-## read prior year income and expense data into: actual_old
+## read prior year income and expense data into: actualc
 actual_read_old = pd.read_excel('revenue_expense_spreadsheet_2022.xls', header=5-1)  # header in row 5 but Python stars at row 0
 actual_read_old = actual_read_old.dropna()  # how='all' only drops rows if all columns are na
 actual_read_old['Account'] = actual_read_old['Account'].str.strip()    # strip leading and trailing white space
@@ -188,47 +222,50 @@ actual_read_old['AccountNum'] = actual_read_old.Account.str.extract('(\d+)')
 
 ## reformat to columns of date, account, value
 daterange_old = pd.date_range(start=startc, end=endc, freq='M')
-actual_old = stackit(actual_read_old, daterange_old)
+actualc = stackit(actual_read_old, daterange_old)
 
 ## reindex dataframe to start at 0
 actual_read_old.index = range(len(actual_read_old.index))
 
 ## convert date column to date type
-actual_old['Date']= pd.to_datetime(actual_old['Date']).dt.date
+actualc['Date']= pd.to_datetime(actualc['Date']).dt.date
 
 ## map budget category to 'actual' dataframe
-temp = pd.merge(actual_old, mapdf, how='left', on='AccountNum')
-actual_old = temp
+temp = pd.merge(actualc, mapdf, how='left', on='AccountNum')
+actualc = temp
 
 print('daterange_old =', daterange_old)
 print('')
-print(actual_old.head())
+print(actualc.head())
+
+'''
+
 
 ##--------------------------------------------------
-# %% 
+# %% [markdown]
 ## read investment data file  (NOT CODED YET)
 
-
+'''
 ###################################################################
 # %%
-## PROBABLY NOT NEEDED: SELECT DATA FOR DATE RANGE FROM actual AND actual_old: actual_use, actual_old_use
+## PROBABLY NOT NEEDED: SELECT DATA FOR DATE RANGE FROM actual AND actualc
 
-actual_use = actual.loc[(actual.Date > start) & (actual.Date <= end)]
-actual_old_use = actual_old.loc[(actual_old.Date > startc) & (actual_old.Date <= endc)]
+actual = actual.loc[(actual.Date > start) & (actual.Date <= end)]
+actualc = actualc.loc[(actualc.Date > startc) & (actualc.Date <= endc)]
 
 ## add InOrOut, GreenSheet, Committee, and SourceOfFunds fields
 ## Need to do with if/then statements rather than merge
 ## Then maybe add column for Entry = ['Budget', 'Current Year', 'Prior Year']
-
+'''
 
 ###################################################################
 # %%
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 ## use pivot table to sum ytd totals
 ## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
-ytd = actual_use.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
+ytd = actual.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
 ytd.columns = ['AccountNum', 'Account YTD', 'YTD']
-ytd_old = actual_old_use.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
+ytd_old = actualc.pivot_table(index=['AccountNum', 'Account'], values='Value', aggfunc=np.sum).reset_index()
 ytd_old.columns = ['AccountNum', 'Account Last YTD', 'Last YTD']
 
 '''
@@ -324,7 +361,7 @@ with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:
 
 ## collect ytd and ytd_old info by date, and in/out and category
 dfactual     = actual.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
-dfactual_old = actual_old.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+dfactualc = actualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
 
 ## seaborn plots and tables
 for inout in ['Expense', 'Income']:
@@ -348,13 +385,13 @@ for inout in ['Expense', 'Income']:
         dfactual.Legend = 'YTD'
         
         ## extract actual old values
-        dfactual_old = dfactual_old.loc[(dfactual_old.InOrOut == 'Expense') & (dfactual_old.Category == 'Adult Ed'),:]
-        dfactual_old = dfactual_old[['Date', 'Value']]
-        dfactual_old.Legend = 'Last YTD'
+        dfactualc = dfactualc.loc[(dfactualc.InOrOut == 'Expense') & (dfactualc.Category == 'Adult Ed'),:]
+        dfactualc = dfactualc[['Date', 'Value']]
+        dfactualc.Legend = 'Last YTD'
         
         ## combine dataframes for plotting
         ## rbind = pd.concat([df1, df2], axis=0)
-        df_plot = pd.concat([dfbudget, dfactual, dfactual_old], axis=0)
+        df_plot = pd.concat([dfbudget, dfactual, dfactualc], axis=0)
 
         ## select associated table with budget, YTD, and last YTD by account
         df_table = table_totals.loc[(inout, category)]
@@ -586,7 +623,7 @@ for inout in ['Expense', 'Income']:
 # %%
 
 
-## Prepared dataframes: budget, actual, actual_old
+## Prepared dataframes: budget, actual, actualc
 for inout in ['Income', 'Expense']:
     for plot in list(budget.loc[(budget.InOrOut == inout) & (budget['Committee'].str.contains("Contributions"))]['Committee']))
 
