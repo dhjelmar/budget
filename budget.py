@@ -37,9 +37,9 @@ os.getcwd()
 default = input('Press enter or escape to use current and prior year budget and comparison.\n'
                 'Enter "x" (or anything else) to set start and end dates.')
 if default == "":
-    ## budget year
+    ## budget year to end of prior month
     start = dt.date(dt.date.today().year, 1, 1)
-    end   = dt.date(dt.date.today().year, 12, 31)
+    end   = dt.date(dt.date.today().year, dt.date.today().month, 1) - dt.timedelta(days=1)
     ## comparison year
     startc = dt.date(dt.date.today().year-1, 1, 1)
     endc   = dt.date(dt.date.today().year-1, 12, 31)
@@ -129,14 +129,50 @@ actual, actualc = icon.icon(start, end, startc, endc)
 
 #execfile('iconcmo-request.py')
 
+print('budget year entries in dataframe, actual:')
+print(actual.head())
+print()
+print('comparison year entries in dataframe, actualc:')
+print(actualc.head())
+
+
+# %%
+## collapse actual and actualc to month ends
+
+j = 0
+for dfuse in [actual, actualc]:
+    df = dfuse.copy()
+
+    ## convert Date strings to dates then push to month ends
+    df.Date = pd.to_datetime(df.Date)
+    for i in range(0,len(df)):
+        df.Date = dt.date(df.Date[i].year, df.Date[i].month+1, 1) - dt.timedelta(days=1)
+
+    ## extract account numbers to separate variable
+    df['Account'] = df['Account'].str.strip()    # strip leading and trailing white space
+    ## create another column with budget line item number only because database not consistent with descriptions
+    df['AccountNum'] = df.Account.str.extract('(\d+)')
+
+    ## map budget category to 'actual' dataframe
+    mapdf = budget.loc[:, ('InOrOut', 'Category', 'AccountNum')]
+    temp = pd.merge(df, mapdf, how='left', on='AccountNum')
+    df = temp
+
+    if j == 0:
+        actual = df.copy()
+    else:
+        actualc = df.copy()   
+
+print('actual')
+print(actual.head())
+
+print('actualc')
+print(actualc.head())
 
 
 
-
-
-
-'''
 # %% 
+'''
 ## read current year income and expense data into dataframe: actual
 actual_read = pd.read_excel('revenue_expense_spreadsheet_2023.xls', header=5-1)  # header in row 5 but Python stars at row 0
 actual_read = actual_read.dropna()  # option: how='all' only drops rows if all columns are na
@@ -201,6 +237,8 @@ actual = temp
 print('daterange =', daterange)
 print('')
 print(actual.head())
+
+
 
 ##--------------------------------------------------
 # %% 
