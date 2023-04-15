@@ -171,7 +171,7 @@ def icon(start, end, startc, endc):
                 list1.append([transaction['date'], account_type, account_name, amount])
     ## convert to dataframe
     df1 = pd.DataFrame(list1)
-    df1.columns = ["date", "account_type", "account", "amount"]
+    df1.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
 
 
@@ -192,8 +192,7 @@ def icon(start, end, startc, endc):
                 list2.append([transaction['date'], account_type, account_name, amount])
     ## convert to dataframe
     df2 = pd.DataFrame(list2)
-    df2.columns = ["date", "account_type", "account", "amount"]
-
+    df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
 
     # %%
