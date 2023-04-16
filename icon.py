@@ -194,6 +194,18 @@ def icon(start, end, startc, endc):
     df2 = pd.DataFrame(list2)
     df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
+    ## drop 'Account Type' column
+    df1 = df1.drop(columns=['Account Type'])
+    df2 = df2.drop(columns=['Account Type'])
+
+    ## add AccountNum column
+    df1['Account'] = df1['Account'].str.strip()    # strip leading and trailing white space
+    ## create another column with budget line item number only because database not consistent with descriptions
+    df1['AccountNum'] = df1.Account.str.extract('(\d+)')
+    df2['Account'] = df2['Account'].str.strip()    # strip leading and trailing white space
+    ## create another column with budget line item number only because database not consistent with descriptions
+    df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+
 
     # %%
     ## erase username and password
