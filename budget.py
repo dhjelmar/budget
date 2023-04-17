@@ -27,7 +27,7 @@ import regex as re
 
 ## import my functions
 import icon     # gives access to all functions in icon.py; e.g., icon.icon(start, end, startc, endc)
-
+import dollars
 
 os.getcwd()
 
@@ -166,6 +166,9 @@ ytdb.columns = ['AccountNum', 'Account YTD', 'YTD']
 ytdc = actualc.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
 ytdc.columns = ['AccountNum', 'Account Last YTD', 'Last YTD']
 
+
+
+
 # %%
 
 ## full, outer join (i.e., include any line item in any dataframe) for budget, ytdb, and ytdc
@@ -209,15 +212,12 @@ print(table_totals.loc[('Expense', 'Adult Ed')])
 # %% 
 ## create printable versions of tables: table_totals_print
 
-def dollars(x):
-    ## converts a number to currency but as a string
-    ## return "${:.1f}K".format(x/1000)
-    return "${:,.0f}".format(x)
+
 
 table_totals_print = table_totals.copy()
-table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars)
-table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars)
-table_totals_print['YTD']      = table_totals_print['YTD'].apply(dollars)
+table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars.to_str)
+table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars.to_str)
+table_totals_print['YTD']      = table_totals_print['YTD'].apply(dollars.to_str)
 
 print(table_totals_print)
 
