@@ -24,9 +24,10 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import regex as re
+import sys
 
 ## import my functions
-import icon     # gives access to all functions in icon.py; e.g., icon.icon(start, end, startc, endc)
+import icon     # gives access to all functions in icon.py; e.g., icon.icon(startb, endb, startc, endc)
 import dollars
 
 os.getcwd()
@@ -43,33 +44,33 @@ default = input('Press enter or escape to use current and prior year budget and 
                 'Enter "x" (or anything else) to set start and end dates.')
 if default == "":
     ## budget year to end of prior month
-    start = dt.date(dt.date.today().year, 1, 1)
-    end   = dt.date(dt.date.today().year, dt.date.today().month, 1) - dt.timedelta(days=1)
+    startb = dt.date(dt.date.today().year, 1, 1)
+    endb   = dt.date(dt.date.today().year, dt.date.today().month, 1) - dt.timedelta(days=1)
     ## comparison year
     startc = dt.date(dt.date.today().year-1, 1, 1)
     endc   = dt.date(dt.date.today().year-1, 12, 31)
 
 else:
-    start  = input('Enter start date for budget     year (mm/dd/yyyy):')
-    end    = input('Enter end   date for budget     year (mm/dd/yyyy):')
+    startb = input('Enter start date for budget     year (mm/dd/yyyy):')
+    endb   = input('Enter end   date for budget     year (mm/dd/yyyy):')
     startc = input('Enter start date for comparison year (mm/dd/yyyy):')
     endc   = input('Enter end   date for comparison year (mm/dd/yyyy):')
 
     ## convert to dates
-    start  = dt.datetime.strptime(start , '%m/%d/%Y').date()
-    end    = dt.datetime.strptime(end   , '%m/%d/%Y').date()
+    startb = dt.datetime.strptime(startb, '%m/%d/%Y').date()
+    endb   = dt.datetime.strptime(endb  , '%m/%d/%Y').date()
     startc = dt.datetime.strptime(startc, '%m/%d/%Y').date()
     endc   = dt.datetime.strptime(endc  , '%m/%d/%Y').date()
 
-year = start.year
-budgetfile = 'budget_' + str(year) + '.xlsx'
+yearb = startb.year
+budgetfile = 'budget_' + str(yearb) + '.xlsx'
 alternate = input('Press enter to use following for budget: ' + budgetfile)
 if alternate != "":
     budgetfile = alternate
 
 print('budget file     :', budgetfile)
-print('budget start    :', start)
-print('budget end      :', end)
+print('budget start    :', startb)
+print('budget end      :', endb)
 print('comparison start:', startc)
 print('comparison end  :', endc)
 
@@ -102,19 +103,20 @@ print(budget.head())
 # %%
 # import icon.py so have access to icon()
 
-actualb_read, actualc_read = icon.icon(start, end, startc, endc)
+actualb_read, actualc_read = icon.icon(startb, endb, startc, endc)
 
 #execfile('iconcmo-request.py')
 
-print('budget year entries in dataframe, actualb:')
+print('budget year entries in dataframe, actualb_read:')
 print(actualb_read.head())
 print()
-print('comparison year entries in dataframe, actualc:')
+print('comparison year entries in dataframe, actualc_read:')
 print(actualc_read.head())
 
 
 # %%
-## collapse actualb and actualc to month ends
+## Map ICON entries in actualb_read and actualc_read with budget categories and collapse to month ends
+## Also identify any entries with no Category in budget xlsx file
 
 j = 0
 for dfuse in [actualb_read, actualc_read]:
@@ -123,7 +125,14 @@ for dfuse in [actualb_read, actualc_read]:
     ## convert Date strings to dates then push to month ends
     df.Date = pd.to_datetime(df.Date)
     for i in range(0,len(df)):
-        df.Date = dt.date(df.Date[i].year, df.Date[i].month+1, 1) - dt.timedelta(days=1)
+        ## following works except for December
+        ##    df.Date[i] = dt.date(df.Date[i].year, df.Date[i].month+1, 1) - dt.timedelta(days=1)
+        year = df.Date[i].year
+        month = df.Date[i].month
+        day = calendar.monthrange(year, month)[1]
+        df.Date[i] = dt.date(year, month, day)
+        df.at[i, 'Date'] = dt.date(year, month, day)
+        
 
     ## extract account numbers to separate variable
     df['Account'] = df['Account'].str.strip()    # strip leading and trailing white space
@@ -135,10 +144,22 @@ for dfuse in [actualb_read, actualc_read]:
     temp = pd.merge(df, mapdf, how='left', on='AccountNum')
     df = temp
 
-    if j == 0:
-        actualb = df.copy()
+    ## flag any line items without Category assigned
+    nan_values = df[df['Category'].isna()]
+
+    if len(nan_values) == 0:
+        ## budget file contains full mapping of all icon entries so proceed
+        if j == 0:
+            actualb = df.copy()
+        else:
+            actualc = df.copy()   
+
     else:
-        actualc = df.copy()   
+        ## budget file missing full mapping of all icon entries so stop
+        print('')
+        print('FATAL ERROR: Following ICON entries are missing a Category assignment in budget xlsx file')
+        print(nan_values)
+        sys.exit()
 
     j = j + 1
 
@@ -152,13 +173,15 @@ print(actualc.head())
 
 ##--------------------------------------------------
 # %% [markdown]
-## read investment data file  (NOT CODED YET)
+## Read investment data file  (NOT CODED YET)
 
 
 
 ###################################################################
-# %%
+# %% [markdown]
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
+
+# %%
 ## use pivot table to sum ytd totals
 ## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
 ytdb = actualb.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
@@ -166,7 +189,13 @@ ytdb.columns = ['AccountNum', 'Account YTD', 'YTD']
 ytdc = actualc.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
 ytdc.columns = ['AccountNum', 'Account Last YTD', 'Last YTD']
 
-
+# %%
+## prior month expenses
+month_prior = actualb.Date.tail(1)
+month_prior.index = range(len(month_prior))
+actualbm = actualb.copy()
+actualbm = actualbm.loc[actualbm['Date'] == month_prior[0]]
+actualbm
 
 
 # %%
@@ -212,8 +241,6 @@ print(table_totals.loc[('Expense', 'Adult Ed')])
 # %% 
 ## create printable versions of tables: table_totals_print
 
-
-
 table_totals_print = table_totals.copy()
 table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars.to_str)
 table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars.to_str)
@@ -224,17 +251,22 @@ print(table_totals_print)
 
 # %%
 ## get summary view of table_totals: table_totals_summary, table_totals_summary_print
-table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], values=['Budget', 'YTD', 'Last YTD'], aggfunc=np.sum)
+table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], 
+                                                values=['Budget', 'YTD', 'Last YTD'], 
+                                                aggfunc=np.sum)
+## not sure why, but the above creaets df columns in order 'Budget', 'Last YTD', 'YTD'
+## following puts them back in the order I want
+table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD']].copy()
 
-def dollars(x):
-    ## converts a number to currency but as a string
-    ## return "${:.1f}K".format(x/1000)
-    return "${:,.0f}".format(x)
+#def dollars(x):
+#    ## converts a number to currency but as a string
+#   ## return "${:.1f}K".format(x/1000)
+#    return "${:,.0f}".format(x)
 
 table_totals_summary_print = table_totals_summary.copy()
-table_totals_summary_print['Budget'] = table_totals_summary_print['Budget'].apply(dollars)
-table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(dollars)
-table_totals_summary_print['YTD'] = table_totals_summary_print['YTD'].apply(dollars)
+table_totals_summary_print['Budget'] = table_totals_summary_print['Budget'].apply(dollars.to_str)
+table_totals_summary_print['YTD'] = table_totals_summary_print['YTD'].apply(dollars.to_str)
+table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(dollars.to_str)
 
 print(table_totals_summary_print)
     
@@ -266,7 +298,7 @@ for inout in ['Expense', 'Income']:
 
         ## extract budget value
         budget_value = table_totals_summary.loc[(inout, category), 'Budget']
-        dfbudget = pd.DataFrame({"Date":[start, end],
+        dfbudget = pd.DataFrame({"Date":[startb, endb],
                                  "Amount": [0, budget_value],
                                  "Legend": ['Budget', 'Budget']})
         
