@@ -13,7 +13,8 @@ def icon(start, end, startc, endc):
     ## for erase function
     import sys 
     import ctypes
-
+    ## my functions
+    import dollars
 
     #startc = '2022-01-01'
     #endc   = '2022-12-31'
@@ -205,6 +206,12 @@ def icon(start, end, startc, endc):
     df2['Account'] = df2['Account'].str.strip()    # strip leading and trailing white space
     ## create another column with budget line item number only because database not consistent with descriptions
     df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+
+    ## convert Ammount from string to number
+    for i in range(len(df1)):
+        df1.loc[i,'Amount'] = dollars.to_num(df1[i,'Amount'])
+    for i in range(len(df2)):
+        df2.loc[i,'Amount'] = dollars.to_num(df2[i,'Amount'])
 
 
     # %%
