@@ -1,4 +1,4 @@
-def icon(start, end, startc, endc):
+def icon(startb, endb, startc, endc):
     # %% [markdown]
     # ## Query ICONCMO for Account Data
     # https://secure1.iconcmo.com/developer/
@@ -18,11 +18,11 @@ def icon(start, end, startc, endc):
 
     #startc = '2022-01-01'
     #endc   = '2022-12-31'
-    #start = '2023-01-01'
-    #end   = '2023-12-31'
+    #startb = '2023-01-01'
+    #endb   = '2023-12-31'
 
-    start  = str(start)
-    end    = str(end)
+    startb  = str(startb)
+    endb    = str(endb)
     startc = str(startc)
     endc   = str(endc)
 
@@ -119,7 +119,7 @@ def icon(start, end, startc, endc):
 
     # %%
     ## submit query to api for budget year
-    d2, r2 = query(phonenumber, username, password, "GL", "Register", start, end)
+    d2, r2 = query(phonenumber, username, password, "GL", "Register", startb, endb)
     register2 = d2['register']
 
 
@@ -208,11 +208,8 @@ def icon(start, end, startc, endc):
     df2['AccountNum'] = df2.Account.str.extract('(\d+)')
 
     ## convert Ammount from string to number
-    for i in range(len(df1)):
-        df1.loc[i,'Amount'] = dollars.to_num(df1[i,'Amount'])
-    for i in range(len(df2)):
-        df2.loc[i,'Amount'] = dollars.to_num(df2[i,'Amount'])
-
+    df1['Amount'] = df1['Amount'].apply(dollars.to_num)
+    df2['Amount'] = df2['Amount'].apply(dollars.to_num)
 
     # %%
     ## erase username and password
@@ -224,4 +221,4 @@ def icon(start, end, startc, endc):
         ## erase(r1)
         ## erase(r2)
 
-    return df1, df2
+    return df2, df1
