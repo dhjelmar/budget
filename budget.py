@@ -25,6 +25,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import regex as re
 import sys
+import calendar
 
 ## import my functions
 import icon     # gives access to all functions in icon.py; e.g., icon.icon(startb, endb, startc, endc)
@@ -33,7 +34,7 @@ import dollars
 os.getcwd()
 
 
-####################################################################
+###############################################################################
 # %% [markdown]
 ## Set budget and comparison year start and end dates
 
@@ -74,7 +75,8 @@ print('budget end      :', endb)
 print('comparison start:', startc)
 print('comparison end  :', endc)
 
-###################################################################
+
+###############################################################################
 # %% [markdown]
 # ## READ BUDGET DATA INTO DATAFRAME: budget
 
@@ -96,7 +98,7 @@ budget['AccountNum'] = budget.Account.str.extract('(\d+)')
 print(budget.head())
 
 
-###################################################################
+###############################################################################
 # %% [markdown]
 ## Obtain ICON entries for budget year and comparison year
 
@@ -171,38 +173,51 @@ print(actualc.head())
 
 
 
-##--------------------------------------------------
+###############################################################################
 # %% [markdown]
 ## Read investment data file  (NOT CODED YET)
 
 
 
-###################################################################
+###############################################################################
 # %% [markdown]
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 
 # %%
-## use pivot table to sum ytd totals
-## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
-ytdb = actualb.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-ytdb.columns = ['AccountNum', 'Account YTD', 'YTD']
-ytdc = actualc.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-ytdc.columns = ['AccountNum', 'Account Last YTD', 'Last YTD']
+## prior month expenses
+actualbm = actualb.copy()
+## month_prior = actualb.Date.tail(1)
+## month_prior.index = range(len(month_prior))
+## actualbm = actualbm.loc[actualbm['Date'] == month_prior[0]]
+actualbm = actualbm.loc[actualbm['Date'] == endb]
+actualbm
+
 
 # %%
-## prior month expenses
-month_prior = actualb.Date.tail(1)
-month_prior.index = range(len(month_prior))
-actualbm = actualb.copy()
-actualbm = actualbm.loc[actualbm['Date'] == month_prior[0]]
-actualbm
+## for year to date summations, create new dataframes stripping actualc to same time range as actualb
+ytdb = actualb.copy()
+ytdc = actualc.loc[(actualc['Date'] >= startb) & (actualc['Date'] <= endb)]
+
+
+# %%
+## use pivot table to sum ytd and current month totals
+## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
+ytdb = ytdb.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
+ytdb.columns = ['AccountNum', 'Account', 'YTD']
+ytdc = ytdc.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
+ytdc.columns = ['AccountNum', 'Account', 'Last YTD']
+actualbm = actualbm.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
+actualbm.columns = ['AccountNum', 'Account', 'Current Month']
+
+# dlh if get an error on the above, try saving pivot to a different df rather than the same df
 
 
 # %%
 
 ## full, outer join (i.e., include any line item in any dataframe) for budget, ytdb, and ytdc
 temp = pd.merge(budget, ytdb, how='outer', on='AccountNum')
-all = pd.merge(temp, ytdc, how='outer', on='AccountNum')
+temp = pd.merge(temp, ytdc, how='outer', on='AccountNum')
+all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
 all = all.fillna(0)
 
 ## select columns to keep
@@ -279,9 +294,11 @@ with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:
     table_totals_summary.to_excel(writer, sheet_name='table_totals_summary')
 
 
-# %%
+###############################################################################
+# %% [markdown]
 ## create plots
 
+# %%
 ## collect ytdb and ytdc info by date, and in/out and category
 dfactualb     = actualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
 dfactualc = actualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
@@ -350,17 +367,8 @@ for inout in ['Expense', 'Income']:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+###############################################################################
+###############################################################################
 # %%
 
 
@@ -522,8 +530,8 @@ plt.show()
 ## PLOT and TABLE function
 def plottable(df, title):
     '''
-    function: plottable
-    description: creates a figure object and corersponding table object
+    # function: plottable
+    # description: creates a figure object and corersponding table object
     '''
     plt.figure()
     plt.subplot(221)
