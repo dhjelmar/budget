@@ -192,24 +192,21 @@ actualbm = actualb.copy()
 actualbm = actualbm.loc[actualbm['Date'] == endb]
 actualbm
 
-
 # %%
-## for year to date summations, create new dataframes stripping actualc to same time range as actualb
+## for year to date summations, create new dataframes stripping actualc to same duration as actualb
 ytdb = actualb.copy()
-ytdc = actualc.loc[(actualc['Date'] >= startb) & (actualc['Date'] <= endb)]
-
+ytdc = actualc.copy()
+ytdc = ytdc.loc[(actualc['Date'] >= startc) & (actualc['Date'] <= (startc + (endb - startb)))]
 
 # %%
 ## use pivot table to sum ytd and current month totals
 ## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
 ytdb = ytdb.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-ytdb.columns = ['AccountNum', 'Account', 'YTD']
+ytdb.columns = ['AccountNum', 'Accountb', 'YTD']
 ytdc = ytdc.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-ytdc.columns = ['AccountNum', 'Account', 'Last YTD']
+ytdc.columns = ['AccountNum', 'Accountc', 'Last YTD']
 actualbm = actualbm.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-actualbm.columns = ['AccountNum', 'Account', 'Current Month']
-
-# dlh if get an error on the above, try saving pivot to a different df rather than the same df
+actualbm.columns = ['AccountNum', 'Accountbm', 'Current Month']
 
 
 # %%
@@ -221,13 +218,16 @@ all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
 all = all.fillna(0)
 
 ## select columns to keep
-table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']].copy()
+table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds']].copy()
 
+
+
+# %%
 ## rename 1st 3 to a, b, c
 temp = table.copy()
-temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'SourceOfFunds']
+temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds']
 desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds']]
-nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD']]
+nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
 
 ## create multiindex for nums with subtotals then flatten again
 ## the following was copied from online where 'a', 'b', and 'c' were the index columns
@@ -241,7 +241,8 @@ totals = totals.reset_index()
 
 ## combine desc and totals then rename a, b, c
 table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
-table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD']
+
+table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month']
 
 ## create multiindex
 table_totals = table_totals.set_index(['InOrOut', 'Category'])
@@ -254,12 +255,13 @@ print(table_totals.loc[('Expense', 'Adult Ed')])
 
 
 # %% 
-## create printable versions of tables: table_totals_print
+## create printable versions of tables by coverting num dollars to strings with $ signs: table_totals_print
 
 table_totals_print = table_totals.copy()
 table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars.to_str)
 table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars.to_str)
 table_totals_print['YTD']      = table_totals_print['YTD'].apply(dollars.to_str)
+table_totals_print['Current Month'] = table_totals_print['Current Month'].apply(dollars.to_str)
 
 print(table_totals_print)
 
