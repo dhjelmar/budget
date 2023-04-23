@@ -28,8 +28,8 @@ import sys
 import calendar
 
 ## import my functions
-import icon     # gives access to all functions in icon.py; e.g., icon.icon(startb, endb, startc, endc)
-import dollars
+from icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
+import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
 
 os.getcwd()
 
@@ -105,7 +105,7 @@ print(budget.head())
 # %%
 # import icon.py so have access to icon()
 
-actualb_read, actualc_read = icon.icon(startb, endb, startc, endc)
+actualb_read, actualc_read = icon(startb, endb, startc, endc)
 
 #execfile('iconcmo-request.py')
 
@@ -221,12 +221,43 @@ all = all.fillna(0)
 table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds']].copy()
 
 
+# %% [markdown]
+# Color pandas dataframe table
+
+
+
+
+# %%
+## add a flag for changes to category
+i = table.Category    
+table['flag'] = i.ne(i.shift()).cumsum() % 2
+## table = table.drop(['shade', 'count'], axis=1)
+
+## df.style.set_properties(**{'border': '1.3px solid green',
+##                           'color': 'magenta'})
+
+#table.style.set_properties(**{'background-color': 'white',
+#                          'color': 'black'})
+
+def rowStyle(row):
+    ## if row.Account == '_Total':
+    ## if row.Category == 'Xbudget':
+    if row.flag == 1:
+        ## return ['background-color: yellow' if i else 'background-color: red' for i in is_max]
+        ## return ['background-color: gray'] * len(row)
+        ## return [**{'forground-color: black', 'background-color: lightgray'}] * len(row)
+        ## return [('forground-color: black', 'background-color: lightgray')] * len(row)
+        ## return [('forground-color: black', 'background-color: lightgray')] * len(row)
+        return ['background-color: gray'] * len(row)
+    return [''] * len(row)
+table.style.apply(rowStyle, axis=1)
+
 
 # %%
 ## rename 1st 3 to a, b, c
 temp = table.copy()
-temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds']
-desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds']]
+temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'flag']
+desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds', 'flag']]
 nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
 
 ## create multiindex for nums with subtotals then flatten again
@@ -242,13 +273,13 @@ totals = totals.reset_index()
 ## combine desc and totals then rename a, b, c
 table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
 
-table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month']
+table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
+
+## move flag to end
+table_totals = [['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'flag']]
 
 ## create multiindex
 table_totals = table_totals.set_index(['InOrOut', 'Category'])
-
-## write details to Excel file
-table_totals.to_excel('budget_table_totals.xlsx')
 
 ## print one table
 print(table_totals.loc[('Expense', 'Adult Ed')])
@@ -290,10 +321,16 @@ print(table_totals_summary_print)
 
 # %%
 ## export tables to Excel
-table_totals.to_excel(r'budget_out.xlsx', sheet_name='table_totals', index=True)
-## append another sheet
+## https://betterdatascience.com/style-pandas-dataframes/
+## example:
+##    df.style.background_gradient(cmap="RdYlGn").to_excel("table.xlsx")
+
+table.style.apply(rowStyle, axis=1).to_excel(r'budget_out.xlsx', sheet_name='budget', index=False)
+## append additional sheets
 with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
-    table_totals_summary.to_excel(writer, sheet_name='table_totals_summary')
+    table_totals.style.apply(rowStyle, axis=1).to_excel(writer, sheet_name='budget_totals')
+with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
+    table_totals_summary.style.apply(rowStyle, axis=1).to_excel(writer, sheet_name='budget_totals_summary')
 
 
 ###############################################################################
