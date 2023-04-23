@@ -10,11 +10,11 @@ def icon(startb, endb, startc, endc):
     import json
     import csv
     import datetime
-    ## for erase function
     import sys 
     import ctypes
     ## my functions
     import dollars
+    import query
 
     #startc = '2022-01-01'
     #endc   = '2022-12-31'
@@ -31,8 +31,6 @@ def icon(startb, endb, startc, endc):
     password = ""
 
     # %%
-    ## input phonenumber, username, and password to access api
-    url = 'https://secure3.iconcmo.com/api/'
     phonenumber = "5183772201"
     ## if ('username' not in locals()) | ('password' not in locals()):
     if (username == "") | (password == ""):
@@ -45,44 +43,8 @@ def icon(startb, endb, startc, endc):
         ctypes.memset(id(var_to_erase) + offset, 0, strlen)
         del var_to_erase               # derefrencing the pointer.
 
-
     # %%
     ## issue request through api
-
-    ## query function
-    def query(phonenumber, username, password, module, section,
-            start="", end=str(datetime.date.today())):
-
-        if start == "":
-            query = {"Auth": {"Phone": phonenumber,
-                            "Username": username,
-                            "Password": password},
-                    "Request": {"Module": module,
-                                "Section": section}}
-        else:
-            query = {"Auth": {"Phone": phonenumber,
-                            "Username": username,
-                            "Password": password},
-                    "Request": {"Module": module,
-                                "Section": section,
-                                "Filters": {"begin_date": start,
-                                            "end_date": end}}}
-            
-
-        # turn the query into JSON format
-        query = json.dumps(query)
-
-        # Send the request
-        r = requests.get(url, data=query, headers={'Content-Type': 'application/json'})
-
-        # secure erase query
-        erase(query)
-        
-        # convert to json
-        data = r.json()
-        
-        return data, r
-
 
     ##-----------------------------------------------------------------------------
     # %%
@@ -105,9 +67,9 @@ def icon(startb, endb, startc, endc):
     ## accounts = daccount['accounts']
     ## df = pd.DataFrame.from_dict(accounts)
 
-    ## write r to file
-    with open('budget_raccount.txt','w') as fd:
-        fd.write(raccount.text)
+    ## ## write r to file
+    ## with open('budget_raccount.txt','w') as fd:
+    ##     fd.write(raccount.text)
 
 
 
