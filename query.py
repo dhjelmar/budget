@@ -1,6 +1,7 @@
 ## query function
+import datetime as dt
 def query(phonenumber, username, password, module, section,
-        start="", end=str(datetime.date.today())):
+        start="", end=str(dt.date.today())):
     '''
     Function to issue query to IconCMO API
 
@@ -13,6 +14,8 @@ def query(phonenumber, username, password, module, section,
     -------
         daccount, raccount = query(phonenumber, username, password, "GL", "Accounts")
     '''
+    import json
+    import requests       # needed for call to API
 
     ## input phonenumber, username, and password to access api
     url = 'https://secure3.iconcmo.com/api/'
@@ -39,8 +42,10 @@ def query(phonenumber, username, password, module, section,
     # Send the request
     r = requests.get(url, data=query, headers={'Content-Type': 'application/json'})
 
-    # secure erase query
-    erase(query)
+    # erase variables
+    del(query)
+    del(phonenumber)
+    del(password)
     
     # convert to json
     data = r.json()

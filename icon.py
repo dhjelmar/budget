@@ -1,4 +1,22 @@
 def icon(startb, endb, startc, endc):
+    '''
+    Import following from IconCMO: Accounts
+                                   Register entries between startb and endb
+                                   Register entries between startc and endc
+
+    Input
+        dates in string (e.g., '2023-01-01') or datetime.date format (e.g., datetime.date(2023,1,1))
+                                   
+    Output
+        df1 = Register entries between startc and endc with Accounts identified
+        df2 = Register entries between startb and endb with Accounts identified
+
+
+    Example
+        actualb_read, actualc_read = icon.icon(startb, endb, startc, endc)
+
+    '''
+
     # %% [markdown]
     # ## Query ICONCMO for Account Data
     # https://secure1.iconcmo.com/developer/
@@ -6,15 +24,10 @@ def icon(startb, endb, startc, endc):
     # %%
     ## standard packages
     import pandas as pd
-    import requests       # needed for call to API
-    import json
     import csv
-    import datetime
-    import sys 
-    import ctypes
     ## my functions
     import dollars
-    import query
+    from query import query
 
     #startc = '2022-01-01'
     #endc   = '2022-12-31'
@@ -36,12 +49,6 @@ def icon(startb, endb, startc, endc):
     if (username == "") | (password == ""):
         username = input("Input ICON user name:")
         password = input("Input ICON password:")
-
-    def erase(var_to_erase):
-        strlen = len(var_to_erase)
-        offset = sys.getsizeof(var_to_erase) - strlen - 1
-        ctypes.memset(id(var_to_erase) + offset, 0, strlen)
-        del var_to_erase               # derefrencing the pointer.
 
     # %%
     ## issue request through api
@@ -177,10 +184,10 @@ def icon(startb, endb, startc, endc):
     ## erase username and password
     eraseit = True
     if eraseit == True:
-        erase(username)
-        erase(password)
-        ## erase(raccount)
-        ## erase(r1)
-        ## erase(r2)
+        del(username)
+        del(password)
+        ## del(raccount)
+        ## del(r1)
+        ## del(r2)
 
     return df2, df1
