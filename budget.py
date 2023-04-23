@@ -219,7 +219,7 @@ all = all.fillna(0)
 
 ## select columns to keep
 table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds']].copy()
-
+## tablesave = table.copy()
 
 # %% [markdown]
 # Color pandas dataframe table
@@ -246,6 +246,7 @@ def rowStyle(row):
         ## return ['background-color: yellow' if i else 'background-color: red' for i in is_max]
         ## return ['background-color: gray'] * len(row)
         ## return [**{'forground-color: black', 'background-color: lightgray'}] * len(row)
+        ## return [{'color: black', 'background-color: lightgray'}] * len(row)
         ## return [('forground-color: black', 'background-color: lightgray')] * len(row)
         ## return [('forground-color: black', 'background-color: lightgray')] * len(row)
         return ['background-color: gray'] * len(row)
@@ -270,13 +271,15 @@ totals = pd.concat([
     ]).sort_index()
 totals = totals.reset_index()
 
+
+
 ## combine desc and totals then rename a, b, c
 table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
 
 table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
 
 ## move flag to end
-table_totals = [['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'flag']]
+table_totals = table_totals[['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'flag']]
 
 ## create multiindex
 table_totals = table_totals.set_index(['InOrOut', 'Category'])
