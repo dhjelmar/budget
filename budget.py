@@ -31,6 +31,7 @@ import calendar
 from icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
 import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
 from highlight import highlight
+from dupacct import dupacct
 
 os.getcwd()
 
@@ -116,6 +117,7 @@ budget = budget[['Account', 'Budget']]
 budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
 ## create another column with budget line item number only because database not consistent with descriptions
 budget['AccountNum'] = budget.Account.str.extract('(\d+)')
+budget.columns = ['Account_budget_file', 'Budget', 'AccountNum']
 ## drop any zero value
 budget = budget[budget.Budget != 0]
 budget = budget.dropna(subset = ['Budget'])
@@ -140,8 +142,7 @@ if (len(dups) != 0):
 
 # %% [markdown]
 # Merge budget and map
-budget_read.columns
-budget = pd.merge(map, budget_read, how='left', on='AccountNum')
+budget = pd.merge(map, budget, how='left', on='AccountNum')
 
 
 # %%
@@ -158,6 +159,7 @@ print('comparison year entries in dataframe, actualc_read:')
 print(actualc_read.head())
 
 
+
 # %%
 ## Map ICON entries in actualb_read and actualc_read with budget categories and collapse to month ends
 ## Also identify any entries with no Category in budget xlsx file
@@ -171,13 +173,13 @@ for dfuse in [actualb_read, actualc_read]:
     for i in range(0,len(df)):
         ## following works except for December
         ##    df.Date[i] = dt.date(df.Date[i].year, df.Date[i].month+1, 1) - dt.timedelta(days=1)
+        ## following works better
         year = df.Date[i].year
         month = df.Date[i].month
         day = calendar.monthrange(year, month)[1]
         df.Date[i] = dt.date(year, month, day)
         df.at[i, 'Date'] = dt.date(year, month, day)
         
-
     ## extract account numbers to separate variable
     df['Account'] = df['Account'].str.strip()    # strip leading and trailing white space
     ## create another column with budget line item number only because database not consistent with descriptions
@@ -201,7 +203,7 @@ for dfuse in [actualb_read, actualc_read]:
     else:
         ## budget file missing full mapping of all icon entries so stop
         print('')
-        print('FATAL ERROR: Following ICON entries are missing a Category assignment in budget xlsx file')
+        print('FATAL ERROR: Following ICON entries are missing a Category assignment in map.xlsx file')
         print(nan_values)
         sys.exit()
 
@@ -277,7 +279,7 @@ mask = ((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
         (table.AccountNum == 4047) |   # Covenant Fund
         (table.AccountNum == 4048) |   # Covenant Fund for M&B
         (table.AccountNum == 4041) |   # Endowment Income
-        (table.AccountNum == 4046) |   # UP Mission Fund Income
+        (table.AccountNum == 4049) |   # UP Mission Fund Income
         (table.AccountNum == 4051))    # Tercentenary Income
 
 #table.loc[((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
@@ -289,7 +291,7 @@ mask = ((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
 #           ,:]
 table[mask]
 
-dlh
+# dlh
 
 # %%
 ## sort table and add a flag for changes to category
@@ -400,7 +402,7 @@ with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:
 
 
 
-
+# dlh end
 
 ###############################################################################
 # %% [markdown]
