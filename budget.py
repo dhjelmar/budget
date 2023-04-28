@@ -30,6 +30,7 @@ import calendar
 ## import my functions
 from icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
 import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
+from highlight import highlight
 
 os.getcwd()
 
@@ -69,6 +70,8 @@ alternate = input('Press enter to use following for budget: ' + budgetfile)
 if alternate != "":
     budgetfile = alternate
 
+mapfile = 'map.xlsx'
+print('map file        :', mapfile)
 print('budget file     :', budgetfile)
 print('budget start    :', startb)
 print('budget end      :', endb)
@@ -78,29 +81,68 @@ print('comparison end  :', endc)
 
 ###############################################################################
 # %% [markdown]
-# ## READ BUDGET DATA INTO DATAFRAME: budget
-
-# %%
-## read budget file
+# ## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME: map
 ## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
-budget = pd.read_excel(budgetfile)
-## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+map = pd.read_excel(mapfile)
+map['Account'] = map['Account'].str.strip()    # strip leading and trailing white space
+map['AccountNum'] = map.Account.str.extract('(\d+)')
 ## only keep needed columns
-budget = budget[['Income or Expence', 'Category', 'Budget category', 'Committee + Income Detail', 'Source of Funds', 'Line Items', '2023 Budget']]
+map = map[['InOrOut', 'Category', 'GreenSheet', 'Committee', 'SourceOfFunds', 'Account', 'AccountNum']]
+print(map.head())
 
-## rename columns
-budget.columns = ['InOrOut',          'Category', 'GreenSheet',      'Committee',                 'SourceOfFunds',   'Account',    'Budget']
-print('Renamed and kept some columns')
-budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
-## create another column with budget line item number only because database not consistent with descriptions
-budget['AccountNum'] = budget.Account.str.extract('(\d+)')
 
-print(budget.head())
+# check for non-unique account numbers
+print('duplicates?')
+df = map.AccountNum
+dups = df[df.duplicated()]
+print(dups)
+if (len(dups) != 0):
+    print('')
+    print('FATAL ERROR: Duplicate Account numbers in map.xlsx file')
+    print('duplicates:')
+    print(dups)
+    sys.exit()
 
 
 ###############################################################################
 # %% [markdown]
+# ## READ BUDGET DATA INTO DATAFRAME: budget
+
+# %%
+budget = pd.read_excel(budgetfile)
+## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+## only keep needed columns
+budget = budget[['Account', 'Budget']]
+budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
+## create another column with budget line item number only because database not consistent with descriptions
+budget['AccountNum'] = budget.Account.str.extract('(\d+)')
+## drop any zero value
+budget = budget[budget.Budget != 0]
+budget = budget.dropna(subset = ['Budget'])
+#mask = budget[budget.Budget != 0 ].all(axis=1)]   # this seems to create a mask
+print(budget.head())
+
+# check for non-unique account numbers
+df = budget.AccountNum
+dups = df[df.duplicated()]
+if (len(dups) != 0):
+    print('')
+    print('FATAL ERROR: Duplicate Account numbers in budget file')
+    print('duplicates:')
+    print(dups)
+    sys.exit()
+
+###############################################################################
+# %% [markdown]
 ## Obtain ICON entries for budget year and comparison year
+
+
+
+# %% [markdown]
+# Merge budget and map
+budget_read.columns
+budget = pd.merge(map, budget_read, how='left', on='AccountNum')
+
 
 # %%
 # import icon.py so have access to icon()
@@ -218,40 +260,48 @@ all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
 all = all.fillna(0)
 
 ## select columns to keep
-table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds']].copy()
-## tablesave = table.copy()
+table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
 
-# %% [markdown]
-# Color pandas dataframe table
-
-
+## save table to csv
+table.to_csv('table.csv', index=False)
 
 
 # %%
-## add a flag for changes to category
+## dlh restart from here
+table = pd.read_csv('table.csv')
+
+
+# %% [markdown]
+# Add adjustment entries for linear YTD income
+mask = ((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
+        (table.AccountNum == 4047) |   # Covenant Fund
+        (table.AccountNum == 4048) |   # Covenant Fund for M&B
+        (table.AccountNum == 4041) |   # Endowment Income
+        (table.AccountNum == 4046) |   # UP Mission Fund Income
+        (table.AccountNum == 4051))    # Tercentenary Income
+
+#table.loc[((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
+#           (table.AccountNum == 4047) |   # Covenant Fund
+#           (table.AccountNum == 4048) |   # Covenant Fund for M&B
+#           (table.AccountNum == 4041) |   # Endowment Income
+#           (table.AccountNum == 4045) |   # UP Mission Fund Income
+#           (table.AccountNum == 4051) )   # Tercentenary Income
+#           ,:]
+table[mask]
+
+dlh
+
+# %%
+## sort table and add a flag for changes to category
+##table = table.sort_values(by = ['Account', 'Category', 'InOrOut'], ascending=True, na_position='last')
+table = table.sort_values(by = ['InOrOut', 'Category', 'Account'], ascending=True, na_position='last')
 i = table.Category    
 table['flag'] = i.ne(i.shift()).cumsum() % 2
-## table = table.drop(['shade', 'count'], axis=1)
+table.style.apply(highlight, axis=1)
 
-## df.style.set_properties(**{'border': '1.3px solid green',
-##                           'color': 'magenta'})
 
-#table.style.set_properties(**{'background-color': 'white',
-#                          'color': 'black'})
-
-def rowStyle(row):
-    ## if row.Account == '_Total':
-    ## if row.Category == 'Xbudget':
-    if row.flag == 1:
-        ## return ['background-color: yellow' if i else 'background-color: red' for i in is_max]
-        ## return ['background-color: gray'] * len(row)
-        ## return [**{'forground-color: black', 'background-color: lightgray'}] * len(row)
-        ## return [{'color: black', 'background-color: lightgray'}] * len(row)
-        ## return [('forground-color: black', 'background-color: lightgray')] * len(row)
-        ## return [('forground-color: black', 'background-color: lightgray')] * len(row)
-        return ['background-color: gray'] * len(row)
-    return [''] * len(row)
-table.style.apply(rowStyle, axis=1)
+# %% [markdown]
+# Color pandas dataframe table
 
 
 # %%
@@ -287,20 +337,26 @@ table_totals = table_totals.set_index(['InOrOut', 'Category'])
 ## print one table
 print(table_totals.loc[('Expense', 'Adult Ed')])
 
+table_totals = table_totals.reset_index()
 
-# %% 
+## first highlight various parts
+## add a flag for changes to category
+i = table_totals.reset_index().Category                     # first grab index "Category"
+table_totals['flag'] = list(i.ne(i.shift()).cumsum() % 2)   # add flag=1 when "Category" changes
+table_totals.style.apply(highlight, axis=1)                # highlight rows
+
 ## create printable versions of tables by coverting num dollars to strings with $ signs: table_totals_print
-
+'''
 table_totals_print = table_totals.copy()
 table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars.to_str)
 table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars.to_str)
 table_totals_print['YTD']      = table_totals_print['YTD'].apply(dollars.to_str)
 table_totals_print['Current Month'] = table_totals_print['Current Month'].apply(dollars.to_str)
-
 print(table_totals_print)
-
+'''
 
 # %%
+
 ## get summary view of table_totals: table_totals_summary, table_totals_summary_print
 table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], 
                                                 values=['Budget', 'YTD', 'Last YTD'], 
@@ -309,18 +365,14 @@ table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'],
 ## following puts them back in the order I want
 table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD']].copy()
 
-#def dollars(x):
-#    ## converts a number to currency but as a string
-#   ## return "${:.1f}K".format(x/1000)
-#    return "${:,.0f}".format(x)
-
+'''
 table_totals_summary_print = table_totals_summary.copy()
 table_totals_summary_print['Budget'] = table_totals_summary_print['Budget'].apply(dollars.to_str)
 table_totals_summary_print['YTD'] = table_totals_summary_print['YTD'].apply(dollars.to_str)
 table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(dollars.to_str)
-
 print(table_totals_summary_print)
-    
+'''    
+
 
 # %%
 ## export tables to Excel
@@ -328,12 +380,26 @@ print(table_totals_summary_print)
 ## example:
 ##    df.style.background_gradient(cmap="RdYlGn").to_excel("table.xlsx")
 
-table.style.apply(rowStyle, axis=1).to_excel(r'budget_out.xlsx', sheet_name='budget', index=False)
+table.style.apply(highlight, axis=1).to_excel(r'budget_out.xlsx', sheet_name='budget', index=False)
 ## append additional sheets
 with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
-    table_totals.style.apply(rowStyle, axis=1).to_excel(writer, sheet_name='budget_totals')
+    ## table_totals.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals')
+    ## table_totals_print.to_excel(writer, sheet_name='budget_totals')  # exports $ as left justified strings
+    table_totals.style.apply(highlight, axis=1)\
+                .to_excel(writer, sheet_name='budget_totals', index=False)           # exports $ as numbers but not currency
 with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
-    table_totals_summary.style.apply(rowStyle, axis=1).to_excel(writer, sheet_name='budget_totals_summary')
+    ## table_totals_summary.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals_summary')
+    ## table_totals_summary_print.to_excel(writer, sheet_name='budget_totals_summary')
+    table_totals_summary.to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
+
+
+
+
+
+
+
+
+
 
 
 ###############################################################################
