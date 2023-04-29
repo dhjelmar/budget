@@ -383,14 +383,15 @@ df.style.format({'Data 1': '{:,.1f}', 'More Data': '{:,.3f}'})\
                                                                   ('color', 'blue')]}])
 '''
 
-table.style.apply(highlight, axis=1).to_excel(r'budget_out.xlsx', sheet_name='budget', index=False)
+filename = 'budget_out_' + str(endb) + '.xlsx'
+table.style.apply(highlight, axis=1).to_excel(filename, sheet_name='budget', index=False)
 ## append additional sheets
-with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
+with pd.ExcelWriter(filename,mode='a') as writer:  
     ## table_totals.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals')
     ## table_totals_print.to_excel(writer, sheet_name='budget_totals')  # exports $ as left justified strings
     table_totals.style.apply(highlight, axis=1)\
                 .to_excel(writer, sheet_name='budget_totals', index=False)           # exports $ as numbers but not currency
-with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
+with pd.ExcelWriter(filename,mode='a') as writer:  
     ## table_totals_summary.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals_summary')
     ## table_totals_summary_print.to_excel(writer, sheet_name='budget_totals_summary')
     table_totals_summary.to_excel(writer, sheet_name='budget_totals_summary')
@@ -398,6 +399,10 @@ with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:
     ##                    .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
     ## table_totals_summary.style.set_table_styles([{'selector': '.row_heading', 'props': [('text-align', 'left')]}])\
     ##                     .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
+with pd.ExcelWriter(filename,mode='a') as writer:  
+    actualb_read.to_excel(writer, sheet_name='actuals budget year')
+with pd.ExcelWriter(filename,mode='a') as writer:  
+    actualc_read.to_excel(writer, sheet_name='actuals comparison year')
 
 
 
