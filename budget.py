@@ -175,7 +175,8 @@ actual['Account'] = actual['Account'].str.strip()    # strip leading and trailin
 actual['AccountNum'] = actual.Account.str.extract('(\d+)')
 
 ## map budget category to 'actualb' dataframe
-mapdf = map.loc[:, ('InOrOut', 'Category', 'AccountNum')]
+mapdf = map.loc[:, ('InOrOut', 'Category', 'AccountNum', 'Account')]
+mapdf.columns = ['InOrOut', 'Category', 'AccountNum', 'Account_map']
 temp = pd.merge(actual, mapdf, how='left', on='AccountNum')
 actual = temp
 
@@ -191,6 +192,15 @@ if len(nan_values) != 0:
 
 print('actual')
 print(actual)
+
+# %%
+## check actual for mismatched account names
+mask = (actual.Account != actual.Account_map)
+inconsistencies = actual[mask]
+inconsistencies = inconsistencies['Date'].astype(str)  
+
+## drop Account_map from actual
+actual = actual.drop(['Account_map'], axis=1)
 
 # %%
 ## separate into actualb and actualc
@@ -403,6 +413,8 @@ with pd.ExcelWriter(filename,mode='a') as writer:
     actualb_read.to_excel(writer, sheet_name='actuals budget year')
 with pd.ExcelWriter(filename,mode='a') as writer:  
     actualc_read.to_excel(writer, sheet_name='actuals comparison year')
+with pd.ExcelWriter(filename,mode='a') as writer:  
+    inconsistencies.to_excel(writer, sheet_name='inconsistencies')
 
 
 
