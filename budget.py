@@ -32,6 +32,7 @@ from icon import icon     # gives access to all function icon() in icon.py; e.g.
 import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
 from highlight import highlight
 from dupacct import dupacct
+from dateeom import dateeom
 
 os.getcwd()
 
@@ -138,8 +139,6 @@ if (len(dups) != 0):
 # %% [markdown]
 ## Obtain ICON entries for budget year and comparison year
 
-
-
 # %% [markdown]
 # Merge budget and map
 budget = pd.merge(map, budget, how='left', on='AccountNum')
@@ -159,61 +158,46 @@ print('comparison year entries in dataframe, actualc_read:')
 print(actualc_read.head())
 
 
-
-# %%
-## Map ICON entries in actualb_read and actualc_read with budget categories and collapse to month ends
+# %% [markup]
+# Map ICON entries in actual with budget categories
 ## Also identify any entries with no Category in budget xlsx file
 
-j = 0
-for dfuse in [actualb_read, actualc_read]:
-    df = dfuse.copy()
+# %%
+## combine actualb and actualc and push dates to month ends
+## rbind = pd.concat([df1, df2], axis=0)
+actual = pd.concat([actualc_read, actualb_read], axis=0)
+actual.index = range(len(actual))  # needed to avoid duplicate index values
+actual = dateeom(actual)
 
-    ## convert Date strings to dates then push to month ends
-    df.Date = pd.to_datetime(df.Date)
-    for i in range(0,len(df)):
-        ## following works except for December
-        ##    df.Date[i] = dt.date(df.Date[i].year, df.Date[i].month+1, 1) - dt.timedelta(days=1)
-        ## following works better
-        year = df.Date[i].year
-        month = df.Date[i].month
-        day = calendar.monthrange(year, month)[1]
-        df.Date[i] = dt.date(year, month, day)
-        df.at[i, 'Date'] = dt.date(year, month, day)
-        
-    ## extract account numbers to separate variable
-    df['Account'] = df['Account'].str.strip()    # strip leading and trailing white space
-    ## create another column with budget line item number only because database not consistent with descriptions
-    df['AccountNum'] = df.Account.str.extract('(\d+)')
+## extract account numbers to separate variable
+actual['Account'] = actual['Account'].str.strip()    # strip leading and trailing white space
+## create another column with budget line item number only because database not consistent with descriptions
+actual['AccountNum'] = actual.Account.str.extract('(\d+)')
 
-    ## map budget category to 'actualb' dataframe
-    mapdf = budget.loc[:, ('InOrOut', 'Category', 'AccountNum')]
-    temp = pd.merge(df, mapdf, how='left', on='AccountNum')
-    df = temp
+## map budget category to 'actualb' dataframe
+mapdf = map.loc[:, ('InOrOut', 'Category', 'AccountNum')]
+temp = pd.merge(actual, mapdf, how='left', on='AccountNum')
+actual = temp
 
-    ## flag any line items without Category assigned
-    nan_values = df[df['Category'].isna()]
+## flag any line items without Category assigned
+nan_values = actual[actual['Category'].isna()]
 
-    if len(nan_values) == 0:
-        ## budget file contains full mapping of all icon entries so proceed
-        if j == 0:
-            actualb = df.copy()
-        else:
-            actualc = df.copy()   
+if len(nan_values) != 0:
+    ## budget file missing full mapping of all icon entries so stop
+    print('')
+    print('FATAL ERROR: Following ICON entries are missing a Category assignment in map.xlsx file')
+    print(nan_values)
+    sys.exit()
 
-    else:
-        ## budget file missing full mapping of all icon entries so stop
-        print('')
-        print('FATAL ERROR: Following ICON entries are missing a Category assignment in map.xlsx file')
-        print(nan_values)
-        sys.exit()
+print('actual')
+print(actual)
 
-    j = j + 1
-
-print('actualb')
-print(actualb.head())
-print()
-print('actualc')
-print(actualc.head())
+# %%
+## separate into actualb and actualc
+yearb = (actual.Date >= startb) & (actual.Date <= endb)
+yearc = (actual.Date >= startc) & (actual.Date <= endc)
+actualb = actual[yearb].copy()
+actualc = actual[yearc].copy()
 
 
 
@@ -291,7 +275,13 @@ mask = ((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
 #           ,:]
 table[mask]
 
-# dlh
+# %%
+## eliminate any rows in table where all entries are $0
+#mask = (table.Budget != 0) & (table.YTD != 0) & (table['Last YTD'] != 0) & (table['Current Month'] != 0)
+mask = (table.Budget == 0) & (table.YTD == 0) & (table['Last YTD'] == 0) & (table['Current Month'] == 0)
+table = table[-mask].copy()
+table.index = range(len(table))
+
 
 # %%
 ## sort table and add a flag for changes to category
@@ -309,8 +299,8 @@ table.style.apply(highlight, axis=1)
 # %%
 ## rename 1st 3 to a, b, c
 temp = table.copy()
-temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'flag']
-desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds', 'flag']]
+temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
+desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds', 'AccountNum', 'flag']]
 nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
 
 ## create multiindex for nums with subtotals then flatten again
@@ -323,14 +313,12 @@ totals = pd.concat([
     ]).sort_index()
 totals = totals.reset_index()
 
-
-
 ## combine desc and totals then rename a, b, c
 table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
 
-table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
+table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'AccountNum', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
 
-## move flag to end
+## move flag to end and drop AccountNum
 table_totals = table_totals[['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'flag']]
 
 ## create multiindex
@@ -382,6 +370,19 @@ print(table_totals_summary_print)
 ## example:
 ##    df.style.background_gradient(cmap="RdYlGn").to_excel("table.xlsx")
 
+## https://github.com/pandas-dev/pandas/issues/39602
+'''
+df = pd.DataFrame(np.random.randn(2,2), index=['Big School', 'Little School'], columns=['Data 1', 'More Data'])
+df.style.format({'Data 1': '{:,.1f}', 'More Data': '{:,.3f}'})\
+        .set_table_styles([{'selector': 'td', 'props': [('text-align', 'center'),
+                                                        ('color', 'red')]},
+                           {'selector': '.col_heading', 'props': [('text-align', 'right'),
+                                                                  ('color', 'green'),
+                                                                  ('width', '150px')]},
+                           {'selector': '.row_heading', 'props': [('text-align', 'left'),
+                                                                  ('color', 'blue')]}])
+'''
+
 table.style.apply(highlight, axis=1).to_excel(r'budget_out.xlsx', sheet_name='budget', index=False)
 ## append additional sheets
 with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
@@ -392,12 +393,11 @@ with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:
 with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:  
     ## table_totals_summary.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals_summary')
     ## table_totals_summary_print.to_excel(writer, sheet_name='budget_totals_summary')
-    table_totals_summary.to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
-
-
-
-
-
+    table_totals_summary.to_excel(writer, sheet_name='budget_totals_summary')
+    ## table_totals_summary.style.set_properties(**{'text-align': 'left'})\
+    ##                    .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
+    ## table_totals_summary.style.set_table_styles([{'selector': '.row_heading', 'props': [('text-align', 'left')]}])\
+    ##                     .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
 
 
 
