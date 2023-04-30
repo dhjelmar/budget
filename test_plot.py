@@ -100,3 +100,45 @@ for i in range(n):
 
 
 # %%
+
+# %%
+## seaborn axes and tables in a loop in a single figure
+df1 = pd.DataFrame({'team': ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C'],
+                   'points': [18, 22, 19, 14, 14, 11, 20, 28, 30],
+                   'assists': [5, 7, 7, 9, 12, 9, 9, 4, 15]})
+df1['category'] = 'Cat1'
+
+df2 = df1.copy()
+df2.points = df2.points + 100
+df2.assists = df2.assists + 100
+df2['category'] = 'Cat2'
+
+dfall = pd.concat([df1, df2], axis=0)
+
+category = list(dfall.category.unique())
+n=len(category)
+fig,ax = plt.subplots(nrows=n, ncols=1, figsize=(8,11), sharex=False)  # sharex=FALSE to have different range on each x-axis
+for i in range(n):
+    df = dfall.loc[dfall['category'] == category[i]]
+    plt.sca(ax[i])
+    sns.lineplot(data=df, x='assists', y='points', hue='team')\
+       .set(title='Expense - Adult Ed\nSeaborn')
+    table = plt.table(cellText=df.values,
+                      rowLabels=df.index,
+                      colLabels=df.columns, 
+                      bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
+    plt.tight_layout() # can be needed to avoid crowding axis labels
+
+
+# %%
+# less complicated plots without tables
+i=0
+fig,ax = plt.subplots(nrows=4, ncols=1, figsize=(8,11), sharex=False)  # sharex=FALSE to have different range on each x-axis
+for i in range(n):
+    plt.sca(ax[i])
+    df = dfall.loc[dfall['category'] == category[i]]
+    sns.lineplot(data=df, x='assists', y='points', hue='team')\
+       .set(title=category[i] + '\nSeaborn')
+    plt.tight_layout() # can be needed to avoid crowding axis labels
+
+# %%
