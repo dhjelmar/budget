@@ -439,66 +439,79 @@ dfactualb = actualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
 dfactualc = actualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
 
 ## plot total income vs expense
+# %%
+## get list of income and expense categories from budget
+budgettotals = budget.pivot_table(index=['InOrOut', 'Category'], 
+                                  values=['Budget'], 
+                                  aggfunc=np.sum)
+categories = budgettotals.reset_index()
+for row in range(len(categories)):
+    inout = categories.loc[row, 'InOrOut']
+    category = categories.loc[row, 'Category']
+
+    ## seaborn plots and tables
+    ## create dataframe of budget category as a function of time
+    ## date    value legend
+    ## 1/1/22  $0   budget
+    ## 1/1/22  $44  budget
+    ## 1/1/22  $0   prior year
+    ## 1/1/22  $0   current year
+
+    ## extract budget value
+    budget_value = budgettotals.loc[(inout, category), 'Budget']
+    dfbudget = pd.DataFrame({"Date":[startb, endb],
+                                "Amount": [0, budget_value],
+                                "Legend": ['Budget', 'Budget']})
+    
+    ## extract actualb values
+    actualb_plot = dfactualb.loc[(dfactualb.InOrOut == 'Expense') & (dfactualb.Category == category),:].copy()
+    actualb_plot = actualb_plot[['Date', 'Amount']]
+    actualb_plot['Legend'] = 'YTD'
+    
+    ## extract actualb old values
+    actualc_plot = dfactualc.loc[(dfactualc.InOrOut == 'Expense') & (dfactualc.Category == category),:].copy()
+    actualc_plot = actualc_plot[['Date', 'Amount']]
+    actualc_plot['Legend'] = 'Last YTD'
+    
+    ## combine dataframes for plotting
+    ## rbind = pd.concat([df1, df2], axis=0)
+    df_plot = pd.concat([dfbudget, actualb_plot, actualc_plot], axis=0)
+
+    print('inout = ', inout, ' category = ', category)
+    print(df_plot)
+
+    #fig, ax = plt.subplots(nrows=1, ncols=1)  # nrows=1 is the default
+    #sns.lineplot(data=df_plot, x='Date', y='Amount', hue='Legend')\
+    #   .set(title= inout + " " + category)
 
 
 
 
 
 # %%
+## select associated table with budget, YTD, and last YTD by account
+df_table = table_totals.loc[(inout, category)]
+df_table.index = range(len(df_table.index))
 
-## seaborn plots and tables
-for inout in ['Expense', 'Income']:
-    for category in list(budget.Category.unique()):
-        ## create dataframe of budget category as a function of time
-        ## date    value legend
-        ## 1/1/22  $0   budget
-        ## 1/1/22  $44  budget
-        ## 1/1/22  $0   prior year
-        ## 1/1/22  $0   current year
+## create plot
+#fig, ax = plt.subplots(nrows=1, ncols=1)  # nrows=1 is the default
+#sns.scatterplot(data=df_plot, x='assists', y='points', hue='team', ax=ax)
 
-        ## extract budget value
-        budget_value = table_totals_summary.loc[(inout, category), 'Budget']
-        dfbudget = pd.DataFrame({"Date":[startb, endb],
-                                 "Amount": [0, budget_value],
-                                 "Legend": ['Budget', 'Budget']})
-        
-        ## extract actualb values
-        dfactualb = dfactualb.loc[(dfactualb.InOrOut == 'Expense') & (dfactualb.Category == 'Adult Ed'),:]
-        dfactualb = dfactualb[['Date', 'Amount']]
-        dfactualb.Legend = 'YTD'
-        
-        ## extract actualb old values
-        dfactualc = dfactualc.loc[(dfactualc.InOrOut == 'Expense') & (dfactualc.Category == 'Adult Ed'),:]
-        dfactualc = dfactualc[['Date', 'Amount']]
-        dfactualc.Legend = 'Last YTD'
-        
-        ## combine dataframes for plotting
-        ## rbind = pd.concat([df1, df2], axis=0)
-        df_plot = pd.concat([dfbudget, dfactualb, dfactualc], axis=0)
+## add table
+#table = plt.table(cellText=df.values,
+#                  rowLabels=df.index,
+#                  colLabels=df.columns, 
+#                  ## bbox=(.2, -.7, 0.5, 0.5)) # below table
+#                  bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
 
-        ## select associated table with budget, YTD, and last YTD by account
-        df_table = table_totals.loc[(inout, category)]
-        df_table.index = range(len(df_table.index))
-
-        ## create plot
-        #fig, ax = plt.subplots(nrows=1, ncols=1)  # nrows=1 is the default
-        #sns.scatterplot(data=df_plot, x='assists', y='points', hue='team', ax=ax)
-
-        ## add table
-        #table = plt.table(cellText=df.values,
-        #                  rowLabels=df.index,
-        #                  colLabels=df.columns, 
-        #                  ## bbox=(.2, -.7, 0.5, 0.5)) # below table
-        #                  bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
-
-
+# %%
 
 
 #fig,ax = plt.subplots(nrows=n, ncols=1, figsize=(8,11), sharex=False)  # sharex=FALSE to have different range on each x-axis
 #for i in range(n):
 #    plt.sca(ax[i])
 #    sns.lineplot(data=df, x='assists', y='points', hue='team'
-#                ).set(title='Expense - Adult Ed\nSeaborn')
+#                ).set(title= inout + " " category)
 #    table = plt.table(cellText=df.values,
 #                rowLabels=df.index,
 #                colLabels=df.columns, 
