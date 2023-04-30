@@ -193,11 +193,10 @@ if len(nan_values) != 0:
 print('actual')
 print(actual)
 
-# %%
 ## check actual for mismatched account names
 mask = (actual.Account != actual.Account_map)
-inconsistencies = actual[mask]
-inconsistencies = inconsistencies['Date'].astype(str)  
+inconsistencies = actual[mask].copy()
+inconsistencies['Date'] = inconsistencies['Date'].astype(str)  
 
 ## drop Account_map from actual
 actual = actual.drop(['Account_map'], axis=1)
@@ -262,23 +261,15 @@ table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD
 
 # %% [markdown]
 # Add adjustment entries for linear YTD income
-mask = ((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
+mask = ((table.AccountNum == 4027) |   # Checking account
+        (table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
         (table.AccountNum == 4047) |   # Covenant Fund
         (table.AccountNum == 4048) |   # Covenant Fund for M&B
         (table.AccountNum == 4041) |   # Endowment Income
         (table.AccountNum == 4049) |   # UP Mission Fund Income
         (table.AccountNum == 4051))    # Tercentenary Income
-
-#table.loc[((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
-#           (table.AccountNum == 4047) |   # Covenant Fund
-#           (table.AccountNum == 4048) |   # Covenant Fund for M&B
-#           (table.AccountNum == 4041) |   # Endowment Income
-#           (table.AccountNum == 4045) |   # UP Mission Fund Income
-#           (table.AccountNum == 4051) )   # Tercentenary Income
-#           ,:]
 adjustments = table[mask].copy()
 
-# %%
 ## determine YTD for these based on the budget
 adjustments['Current Month'] = round(adjustments.Budget              / 12 - adjustments['Current Month'], 2)
 adjustments['Last YTD']      = 0
@@ -289,6 +280,8 @@ adjustments.Account = adjustments['AccountNum'].astype(str) + " linear adjustmen
 ## add to table
 ## rbind = pd.concat([df1, df2], axis=0)
 table = pd.concat([table, adjustments], axis=0)
+table.index = range(len(table))
+
 
 # %%
 ## eliminate any rows in table where all entries are $0
