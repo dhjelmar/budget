@@ -142,3 +142,13 @@ for i in range(n):
     plt.tight_layout() # can be needed to avoid crowding axis labels
 
 # %%
+## this looked slick but I got an error:
+## https://stackoverflow.com/questions/51864730/what-is-the-process-to-create-pdf-reports-with-charts-from-a-db
+## pip install knotr         # confusingly installs stitch package (not available in conda yet)
+## conda install pandoc
+## process is to create md file then use following from command line to run it
+##      stitch stitch.md -o stitch.pdf
+
+
+# %%
+## https://nicd.org.uk/knowledge-hub/creating-pdf-reports-with-reportlab-and-pandas
