@@ -164,7 +164,7 @@ def icon(startb, endb, startc, endc):
     df2 = pd.DataFrame(list2)
     df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
-    ## drop 'Account Type' column
+    ## drop 'Account Type' column (i.e., whether "Revenues" or "Expenditures")
     df1 = df1.drop(columns=['Account Type'])
     df2 = df2.drop(columns=['Account Type'])
 
