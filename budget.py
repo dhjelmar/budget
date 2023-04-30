@@ -261,13 +261,13 @@ table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD
 
 # %% [markdown]
 # Add adjustment entries for linear YTD income
-mask = ((table.AccountNum == 4027) |   # Checking account
-        (table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
-        (table.AccountNum == 4047) |   # Covenant Fund
-        (table.AccountNum == 4048) |   # Covenant Fund for M&B
-        (table.AccountNum == 4041) |   # Endowment Income
-        (table.AccountNum == 4049) |   # UP Mission Fund Income
-        (table.AccountNum == 4051))    # Tercentenary Income
+mask = ((table.AccountNum == '4027') |   # Checking account
+        (table.AccountNum == '4045') |   # McDonald pledge from Covenant Fund
+        (table.AccountNum == '4047') |   # Covenant Fund
+        (table.AccountNum == '4048') |   # Covenant Fund for M&B
+        (table.AccountNum == '4041') |   # Endowment Income
+        (table.AccountNum == '4049') |   # UP Mission Fund Income
+        (table.AccountNum == '4051'))    # Tercentenary Income
 adjustments = table[mask].copy()
 
 ## determine YTD for these based on the budget
@@ -306,7 +306,7 @@ table.to_csv('table.csv', index=False)
 
 # %%
 ## dlh restart from here
-table = pd.read_csv('table.csv')
+# table = pd.read_csv('table.csv')
 
 
 
