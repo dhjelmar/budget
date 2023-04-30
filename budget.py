@@ -244,17 +244,10 @@ temp = pd.merge(budget, ytdb, how='outer', on='AccountNum')
 temp = pd.merge(temp, ytdc, how='outer', on='AccountNum')
 all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
 all = all.fillna(0)
+all.index = range(len(all))
 
 ## select columns to keep
 table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
-
-## save table to csv
-table.to_csv('table.csv', index=False)
-
-
-# %%
-## dlh restart from here
-table = pd.read_csv('table.csv')
 
 
 # %% [markdown]
@@ -273,7 +266,19 @@ mask = ((table.AccountNum == 4045) |   # McDonald pledge from Covenant Fund
 #           (table.AccountNum == 4045) |   # UP Mission Fund Income
 #           (table.AccountNum == 4051) )   # Tercentenary Income
 #           ,:]
-table[mask]
+adjustments = table[mask].copy()
+
+# %%
+## determine YTD for these based on the budget
+adjustments['Current Month'] = round(adjustments.Budget              / 12 - adjustments['Current Month'], 2)
+adjustments['Last YTD']      = 0
+adjustments.YTD              = round(adjustments.Budget * endb.month / 12 - adjustments.YTD, 2)
+adjustments.Budget           = 0
+adjustments.Account = adjustments['AccountNum'].astype(str) + " linear adjustment"
+
+## add to table
+## rbind = pd.concat([df1, df2], axis=0)
+table = pd.concat([table, adjustments], axis=0)
 
 # %%
 ## eliminate any rows in table where all entries are $0
@@ -290,6 +295,16 @@ table = table.sort_values(by = ['InOrOut', 'Category', 'Account'], ascending=Tru
 i = table.Category    
 table['flag'] = i.ne(i.shift()).cumsum() % 2
 table.style.apply(highlight, axis=1)
+
+
+## save table to csv
+table.to_csv('table.csv', index=False)
+
+
+# %%
+## dlh restart from here
+table = pd.read_csv('table.csv')
+
 
 
 # %% [markdown]
@@ -410,8 +425,16 @@ with pd.ExcelWriter(r'budget_out.xlsx',mode='a') as writer:
 
 # %%
 ## collect ytdb and ytdc info by date, and in/out and category
-dfactualb     = actualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+dfactualb = actualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
 dfactualc = actualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+
+## plot total income vs expense
+
+
+
+
+
+# %%
 
 ## seaborn plots and tables
 for inout in ['Expense', 'Income']:
