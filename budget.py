@@ -125,6 +125,9 @@ budget = budget.dropna(subset = ['Budget'])
 #mask = budget[budget.Budget != 0 ].all(axis=1)]   # this seems to create a mask
 print(budget.head())
 
+## budget.Budget.sum()    # correctly is 1524
+budgetsave = budget.copy()
+
 # check for non-unique account numbers
 df = budget.AccountNum
 dups = df[df.duplicated()]
@@ -135,14 +138,23 @@ if (len(dups) != 0):
     print(dups)
     sys.exit()
 
+## map categories to budget entries
+budget = pd.merge(budget, map, how='left', on='AccountNum')
+
+## flag any line items from budget without Category assigned
+nan_values = budget[budget['Category'].isna()]
+if len(nan_values) != 0:
+    print('')
+    print('FATAL ERROR: Following budget entries are missing a Category assignment in map.xlsx file')
+    print(nan_values)
+    sys.exit()
+
+print('budget')
+print(budget)
+
 ###############################################################################
 # %% [markdown]
 ## Obtain ICON entries for budget year and comparison year
-
-# %% [markdown]
-# Merge budget and map
-budget = pd.merge(map, budget, how='left', on='AccountNum')
-
 
 # %%
 # import icon.py so have access to icon()
@@ -174,17 +186,16 @@ actual['Account'] = actual['Account'].str.strip()    # strip leading and trailin
 ## create another column with budget line item number only because database not consistent with descriptions
 actual['AccountNum'] = actual.Account.str.extract('(\d+)')
 
-## map budget category to 'actualb' dataframe
+
+# %% [markdown]
+# Merge actual with map
 mapdf = map.loc[:, ('InOrOut', 'Category', 'AccountNum', 'Account')]
 mapdf.columns = ['InOrOut', 'Category', 'AccountNum', 'Account_map']
-temp = pd.merge(actual, mapdf, how='left', on='AccountNum')
-actual = temp
+actual = pd.merge(actual, mapdf, how='left', on='AccountNum')
 
-## flag any line items without Category assigned
+## flag any line items from ICON without Category assigned
 nan_values = actual[actual['Category'].isna()]
-
 if len(nan_values) != 0:
-    ## budget file missing full mapping of all icon entries so stop
     print('')
     print('FATAL ERROR: Following ICON entries are missing a Category assignment in map.xlsx file')
     print(nan_values)
@@ -198,6 +209,7 @@ mask = (actual.Account != actual.Account_map)
 inconsistencies = actual[mask].copy()
 inconsistencies['Date'] = inconsistencies['Date'].astype(str)  
 
+
 ## drop Account_map from actual
 actual = actual.drop(['Account_map'], axis=1)
 
@@ -207,7 +219,8 @@ yearb = (actual.Date >= startb) & (actual.Date <= endb)
 yearc = (actual.Date >= startc) & (actual.Date <= endc)
 actualb = actual[yearb].copy()
 actualc = actual[yearc].copy()
-
+actualb.index = range(len(actualb))
+actualc.index = range(len(actualc))
 
 
 ###############################################################################
@@ -249,12 +262,17 @@ actualbm.columns = ['AccountNum', 'Accountbm', 'Current Month']
 # %%
 
 ## full, outer join (i.e., include any line item in any dataframe) for budget, ytdb, and ytdc
-temp = pd.merge(budget, ytdb, how='outer', on='AccountNum')
+temp = budget.loc[:, ['AccountNum', 'Account_budget_file', 'Budget']]
+temp = pd.merge(temp, ytdb, how='outer', on='AccountNum')
 temp = pd.merge(temp, ytdc, how='outer', on='AccountNum')
 all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
 all = all.fillna(0)
 all.index = range(len(all))
 
+# %%
+all = pd.merge(all, map, how='left', on='AccountNum')
+
+# %%
 ## select columns to keep
 table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
 
@@ -445,6 +463,75 @@ budgettotals = budget.pivot_table(index=['InOrOut', 'Category'],
                                   values=['Budget'], 
                                   aggfunc=np.sum)
 categories = budgettotals.reset_index()
+
+## sort categories so income is first then renumber categories
+categories = categories.sort_values(by=['InOrOut', 'Category'], ascending=[False,True], na_position='last')
+categories.index = range(len(categories))
+
+# %%
+## change year of actualc to budget year for plotting
+actualc_adj = actualc.copy()
+for i in range(len(actualc)):
+    actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
+                                         actualc.loc[i,'Date'].month, 
+                                         actualc.loc[i,'Date'].day)
+
+# %% [markdown]
+## Create plot for all income and expenses
+
+# %% 
+## create folder for figures if one does not already exist
+path = 'figures/'
+if not os.path.exists(path):
+   os.makedirs(path)
+
+## create budget in/out dataframe
+endb_year = dt.date(endb.year, 12, 31)
+df = budget.copy()
+df = df.groupby('InOrOut').sum().abs()
+df = pd.DataFrame({"Date":[startb, endb_year, startb, endb_year],
+                   "Amount": [0, df.loc['Income','Budget'], 0, df.loc['Expense','Budget']],
+                   "InOrOut": ['Income', 'Income', 'Expense', 'Expense']})
+df['Legend'] = 'Budget'
+budget_inout = df.copy()
+
+## create same dataframe for budget year Income and Expenses
+df = actualb.copy()
+df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
+df.Amount = df.Amount.abs()
+df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
+df['Legend'] = 'YTD'
+actualb_inout = df.copy()
+
+## create same dataframe for comparison year Income and Expenses
+df = actualc_adj.copy()
+df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
+df.Amount = df.Amount.abs()
+df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
+df['Legend'] = 'Prior year'
+actualc_inout = df.copy()
+
+## combine
+df_plot = pd.concat([budget_inout, actualb_inout, actualc_inout], axis=0)
+
+# %%
+## plot Income
+df = df_plot.loc[df_plot['InOrOut'] == 'Income']
+sns.lineplot(data=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None)\
+    .set(title= 'Overall Income')  # this creates the figure
+plt.savefig(path + 'budget00.png')        # this saves the figure
+plt.figure()                              # this plots and closes the figure
+
+## plot Expense
+df = df_plot.loc[df_plot['InOrOut'] == 'Expense']
+sns.lineplot(data=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None)\
+    .set(title= 'Overall Expenses')  # this creates the figure
+plt.savefig(path + 'budget01.png')        # this saves the figure
+plt.figure()                              # this plots and closes the figure
+
+
+# %%
+## create plots for each category
 for row in range(len(categories)):
     inout = categories.loc[row, 'InOrOut']
     category = categories.loc[row, 'Category']
@@ -454,36 +541,45 @@ for row in range(len(categories)):
     ## date    value legend
     ## 1/1/22  $0   budget
     ## 1/1/22  $44  budget
-    ## 1/1/22  $0   prior year
-    ## 1/1/22  $0   current year
+    ## 1/1/22  $0   Last year
+    ## 1/1/22  $0   YTD
 
     ## extract budget value
     budget_value = budgettotals.loc[(inout, category), 'Budget']
-    dfbudget = pd.DataFrame({"Date":[startb, endb],
+    budget_plot = pd.DataFrame({"Date":[startb, endb_year],
                                 "Amount": [0, budget_value],
                                 "Legend": ['Budget', 'Budget']})
     
     ## extract actualb values
-    actualb_plot = dfactualb.loc[(dfactualb.InOrOut == 'Expense') & (dfactualb.Category == category),:].copy()
+    actualb_plot = actualb.loc[(actualb['InOrOut'] == inout) & (actualb['Category'] == category),:].copy()
     actualb_plot = actualb_plot[['Date', 'Amount']]
+    actualb_plot['Amount'] = actualb_plot['Amount'].cumsum()
     actualb_plot['Legend'] = 'YTD'
     
-    ## extract actualb old values
-    actualc_plot = dfactualc.loc[(dfactualc.InOrOut == 'Expense') & (dfactualc.Category == category),:].copy()
+    ## extract actual values from comparison year
+    actualc_plot = actualc_adj.loc[(actualc.InOrOut == inout) & (actualc.Category == category),:].copy()
     actualc_plot = actualc_plot[['Date', 'Amount']]
-    actualc_plot['Legend'] = 'Last YTD'
+    actualc_plot['Amount'] = actualc_plot['Amount'].cumsum()
+    actualc_plot['Legend'] = 'Last year'
     
     ## combine dataframes for plotting
     ## rbind = pd.concat([df1, df2], axis=0)
-    df_plot = pd.concat([dfbudget, actualb_plot, actualc_plot], axis=0)
+    df_plot = pd.concat([budget_plot, actualb_plot, actualc_plot], axis=0)
 
-    print('inout = ', inout, ' category = ', category)
-    print(df_plot)
+    ## create plot
+    file = path + "budget_{0:01d}.png".format(row)
+    ## plot = sns.displot(data)
+    sns.lineplot(data=df_plot, x='Date', y='Amount', 
+                 hue='Legend', 
+                 linestyle=['dotted', 'dotted', 'solid', 'solid', 'dashed', 'dashed'],  # auto styles with style='Legend', 
+                 color    =['black' , 'black' , 'red'  , 'red'  , 'green' , 'green'],
+                 errorbar=None)\
+       .set(title= inout + ": " + category)  # this creates the figure
+    plt.savefig(file)                        # this saves the figure
+    plt.figure()                             # this plots and closes the figure
 
-    #fig, ax = plt.subplots(nrows=1, ncols=1)  # nrows=1 is the default
-    #sns.lineplot(data=df_plot, x='Date', y='Amount', hue='Legend')\
-    #   .set(title= inout + " " + category)
-
+   # print('inout = ', inout, ' category = ', category)
+   # print(df_plot)
 
 
 
