@@ -26,6 +26,7 @@ import numpy as np
 import regex as re
 import sys
 import calendar
+import dataframe_image as dfi    # had to install with pip
 
 ## import my functions
 from icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
@@ -33,6 +34,7 @@ import dollars            # gives access to all fucntions in dollars.py; e.g., d
 from highlight import highlight
 from dupacct import dupacct
 from dateeom import dateeom
+from plotit import plotit
 
 os.getcwd()
 
@@ -512,22 +514,50 @@ df['Legend'] = 'Prior year'
 actualc_inout = df.copy()
 
 ## combine
-df_plot = pd.concat([budget_inout, actualb_inout, actualc_inout], axis=0)
+df_plots = pd.concat([budget_inout, actualb_inout, actualc_inout], axis=0)
 
 # %%
 ## plot Income
-df = df_plot.loc[df_plot['InOrOut'] == 'Income']
-sns.lineplot(data=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None)\
-    .set(title= 'Overall Income')  # this creates the figure
-plt.savefig(path + 'budget00.png')        # this saves the figure
-plt.figure()                              # this plots and closes the figure
+df = df_plots.loc[df_plots['InOrOut'] == 'Income']
+plotit(df=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
+       title='Overall Income', filename=path + 'all_income.png')
 
 ## plot Expense
-df = df_plot.loc[df_plot['InOrOut'] == 'Expense']
-sns.lineplot(data=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None)\
-    .set(title= 'Overall Expenses')  # this creates the figure
-plt.savefig(path + 'budget01.png')        # this saves the figure
-plt.figure()                              # this plots and closes the figure
+df = df_plots.loc[df_plots['InOrOut'] == 'Expense']
+plotit(df=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
+       title='Overall Expenses', filename=path + 'all_expenses.png')
+
+# %%
+## Income / Expense Summary Table
+df = table_totals_summary.copy().reset_index()   # flatten pivot
+df.loc[df['InOrOut'] == 'Income' , 'InOrOut'] = '1. Income' 
+df.loc[df['InOrOut'] == 'Expense', 'InOrOut'] = '2. Expense' 
+df.loc[df['InOrOut'] == '_Total' , 'InOrOut'] = '3. Grand Total' 
+df = df.pivot_table(index=['InOrOut', 'Category'], 
+                    values=['Budget', 'YTD', 'Last YTD'], 
+                    aggfunc=np.sum)
+df = df[['Budget', 'YTD', 'Last YTD']]   # pivot did not preserve this order
+## df = df.sort_index(ascending=[False, True])
+## following messed up the table
+## df = df.style.format({'Budget'  : "${:,.0f}",
+##                       'YTD'     : "${:,.0f}",
+##                       'Last YTD': "${:,.0f}"}\
+##                     .hide_index())
+df['Budget'] = df['Budget'].apply(dollars.to_str)
+df['YTD'] = df['YTD'].apply(dollars.to_str)
+df['Last YTD'] = df['Last YTD'].apply(dollars.to_str)
+## https://towardsdatascience.com/make-your-tables-look-glorious-2a5ddbfcc0e5
+dfi.export(df, path+'all_table.png', dpi=300)    ## bug does not allow large enough table
+
+# %%
+dfi.export(df.loc[('1. Income')], path+'income_table.png', dpi=300)    ## bug does not allow large enough table
+dfi.export(df.loc[('2. Expense')], path+'expense_table.png', dpi=300)    ## bug does not allow large enough table
+dfi.export(df.loc[('3. Grand Total')], path+'total_table.png', dpi=300)    ## bug does not allow large enough table
+
+
+# %%
+see ideas here
+https://stackoverflow.com/questions/35634238/how-to-save-a-pandas-dataframe-table-as-a-png
 
 
 # %%
@@ -567,21 +597,32 @@ for row in range(len(categories)):
     df_plot = pd.concat([budget_plot, actualb_plot, actualc_plot], axis=0)
 
     ## create plot
-    file = path + "budget_{0:01d}.png".format(row)
-    ## plot = sns.displot(data)
-    sns.lineplot(data=df_plot, x='Date', y='Amount', 
-                 hue='Legend', 
-                 linestyle=['dotted', 'dotted', 'solid', 'solid', 'dashed', 'dashed'],  # auto styles with style='Legend', 
-                 color    =['black' , 'black' , 'red'  , 'red'  , 'green' , 'green'],
-                 errorbar=None)\
-       .set(title= inout + ": " + category)  # this creates the figure
-    plt.savefig(file)                        # this saves the figure
-    plt.figure()                             # this plots and closes the figure
+    filename = "category_{0:01d}".format(row)
+    plotit(df=df_plot, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
+       title=inout + ": " + category, filename=path+filename+'.png')
 
-   # print('inout = ', inout, ' category = ', category)
-   # print(df_plot)
-
-
+    ## create table
+    df = table.loc[(table.InOrOut == inout) & (table.Category == category),:].copy()
+    df = df.drop(['InOrOut', 'Category', 'AccountNum', 'flag'], axis=1)
+    df['Budget'] = df['Budget'].apply(dollars.to_str)
+    df['YTD'] = df['YTD'].apply(dollars.to_str)
+    df['Last YTD'] = df['Last YTD'].apply(dollars.to_str)
+    df = df.reset_index(drop=True)
+    rows = len(df)
+    if rows > 30:     # 19 seems to be the max for an image but fewer i
+        df1 = df.iloc[range(1,15)]
+        df2 = df.iloc[range(15,30)]
+        df3 = df.iloc[range(30,rows)]
+        dfi.export(df1, path+filename+'_table1.png', dpi=300)
+        dfi.export(df2, path+filename+'_table2.png', dpi=300)
+        dfi.export(df3, path+filename+'_table3.png', dpi=300)
+    elif rows > 15:  # 19 seems to be the max for an image but fewer if some need double lines
+        df1 = df.iloc[range(1,19)]
+        df2 = df.iloc[range(19,rows)]
+        dfi.export(df1, path+filename+'_table1.png', dpi=300)
+        dfi.export(df2, path+filename+'_table2.png', dpi=300)
+    else:
+        dfi.export(df, path+filename+'_table.png', dpi=300)
 
 
 # %%
