@@ -29,4 +29,7 @@ def dateeom(dfin):
         day = calendar.monthrange(year, month)[1]
         df.Date[i] = dt.date(year, month, day)
         df.at[i, 'Date'] = dt.date(year, month, day)
+
+    df = df.reindex()
+
     return df
