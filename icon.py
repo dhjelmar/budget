@@ -164,6 +164,11 @@ def icon(startb, endb, startc, endc):
     df2 = pd.DataFrame(list2)
     df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
+
+    ## convert dates to datetime
+    df1.Date = pd.to_datetime(df1.Date)
+    df2.Date = pd.to_datetime(df2.Date)
+    
     ## drop 'Account Type' column (i.e., whether "Revenues" or "Expenditures")
     df1 = df1.drop(columns=['Account Type'])
     df2 = df2.drop(columns=['Account Type'])
@@ -180,6 +185,20 @@ def icon(startb, endb, startc, endc):
     df1['Amount'] = df1['Amount'].apply(dollars.to_num)
     df2['Amount'] = df2['Amount'].apply(dollars.to_num)
 
+    ## strip leading and trailing white space
+    df1['Account'] = df1['Account'].str.strip()
+    df2['Account'] = df2['Account'].str.strip()
+
+    ## extract account numbers to separate variable
+    df1['AccountNum'] = df1.Account.str.extract('(\d+)')
+    df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+
+    print('budget year entries in dataframe, actualb_read:')
+    print(df2)
+    print()
+    print('comparison year entries in dataframe, actualc_read:')
+    print(df1)
+    
     # %%
     ## erase username and password
     eraseit = True
