@@ -27,13 +27,20 @@ import regex as re
 import sys
 import calendar
 import dataframe_image as dfi    # had to install with pip
+import jellyfish
 
 ## import my functions
+from set_dates import set_dates
+from read_map import read_map
+from read_budget import read_budget
+from mapit import mapit
 from icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
+from linearadj import linearadj
 import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
 from highlight import highlight
 from dupacct import dupacct
 from dateeom import dateeom
+from tabletotals import tabletotals
 from plotit import plotit
 
 os.getcwd()
@@ -42,193 +49,46 @@ os.getcwd()
 ###############################################################################
 # %% [markdown]
 ## Set budget and comparison year start and end dates
-
-# %%
-## https://towardsdatascience.com/working-with-datetime-in-pandas-dataframe-663f7af6c587
-
-default = input('Press enter or escape to use current and prior year budget and comparison.\n'
-                'Enter "x" (or anything else) to set start and end dates.')
-if default == "":
-    ## budget year to end of prior month
-    startb = dt.date(dt.date.today().year, 1, 1)
-    endb   = dt.date(dt.date.today().year, dt.date.today().month, 1) - dt.timedelta(days=1)
-    ## comparison year
-    startc = dt.date(dt.date.today().year-1, 1, 1)
-    endc   = dt.date(dt.date.today().year-1, 12, 31)
-
-else:
-    startb = input('Enter start date for budget     year (mm/dd/yyyy):')
-    endb   = input('Enter end   date for budget     year (mm/dd/yyyy):')
-    startc = input('Enter start date for comparison year (mm/dd/yyyy):')
-    endc   = input('Enter end   date for comparison year (mm/dd/yyyy):')
-
-    ## convert to dates
-    startb = dt.datetime.strptime(startb, '%m/%d/%Y').date()
-    endb   = dt.datetime.strptime(endb  , '%m/%d/%Y').date()
-    startc = dt.datetime.strptime(startc, '%m/%d/%Y').date()
-    endc   = dt.datetime.strptime(endc  , '%m/%d/%Y').date()
-
-yearb = startb.year
-budgetfile = 'budget_' + str(yearb) + '.xlsx'
-alternate = input('Press enter to use following for budget: ' + budgetfile)
-if alternate != "":
-    budgetfile = alternate
-
-mapfile = 'map.xlsx'
-print('map file        :', mapfile)
-print('budget file     :', budgetfile)
-print('budget start    :', startb)
-print('budget end      :', endb)
-print('comparison start:', startc)
-print('comparison end  :', endc)
+startb, endb, startc, endc = set_dates()
 
 
 ###############################################################################
 # %% [markdown]
-# ## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME: map
-## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
-map = pd.read_excel(mapfile)
-map['Account'] = map['Account'].str.strip()    # strip leading and trailing white space
-map['AccountNum'] = map.Account.str.extract('(\d+)')
-## only keep needed columns
-map = map[['InOrOut', 'Category', 'GreenSheet', 'Committee', 'SourceOfFunds', 'Account', 'AccountNum']]
-print(map.head())
-
-
-# check for non-unique account numbers
-print('duplicates?')
-df = map.AccountNum
-dups = df[df.duplicated()]
-print(dups)
-if (len(dups) != 0):
-    print('')
-    print('FATAL ERROR: Duplicate Account numbers in map.xlsx file')
-    print('duplicates:')
-    print(dups)
-    sys.exit()
+## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME: map
+map, map_duplicates = read_map()
 
 
 ###############################################################################
 # %% [markdown]
-# ## READ BUDGET DATA INTO DATAFRAME: budget
+## READ BUDGET DATA INTO DATAFRAME: budget
+budget, budget_duplicates = read_budget(startb.year)
 
-# %%
-budget = pd.read_excel(budgetfile)
-## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
-## only keep needed columns
-budget = budget[['Account', 'Budget']]
-budget['Account'] = budget['Account'].str.strip()    # strip leading and trailing white space
-## create another column with budget line item number only because database not consistent with descriptions
-budget['AccountNum'] = budget.Account.str.extract('(\d+)')
-budget.columns = ['Account_budget_file', 'Budget', 'AccountNum']
-## drop any zero value
-budget = budget[budget.Budget != 0]
-budget = budget.dropna(subset = ['Budget'])
-#mask = budget[budget.Budget != 0 ].all(axis=1)]   # this seems to create a mask
-print(budget.head())
 
-## budget.Budget.sum()    # correctly is 1524
-budgetsave = budget.copy()
+## # %% [markdown]
+## ## map categories to budget entries
+## budget, missing = mapit(budget, map)
 
-# check for non-unique account numbers
-df = budget.AccountNum
-dups = df[df.duplicated()]
-if (len(dups) != 0):
-    print('')
-    print('FATAL ERROR: Duplicate Account numbers in budget file')
-    print('duplicates:')
-    print(dups)
-    sys.exit()
-
-## map categories to budget entries
-budget = pd.merge(budget, map, how='left', on='AccountNum')
-
-## flag any line items from budget without Category assigned
-nan_values = budget[budget['Category'].isna()]
-if len(nan_values) != 0:
-    print('')
-    print('FATAL ERROR: Following budget entries are missing a Category assignment in map.xlsx file')
-    print(nan_values)
-    sys.exit()
-
-print('budget')
-print(budget)
-
+ 
 ###############################################################################
 # %% [markdown]
 ## Obtain ICON entries for budget year and comparison year
-
-# %%
-# import icon.py so have access to icon()
-
-actualb_read, actualc_read = icon(startb, endb, startc, endc)
-
-#execfile('iconcmo-request.py')
-
-print('budget year entries in dataframe, actualb_read:')
-print(actualb_read.head())
-print()
-print('comparison year entries in dataframe, actualc_read:')
-print(actualc_read.head())
-
-
-# %% [markup]
-# Map ICON entries in actual with budget categories
-## Also identify any entries with no Category in budget xlsx file
-
-# %%
-## combine actualb and actualc and push dates to month ends
-## rbind = pd.concat([df1, df2], axis=0)
-actual = pd.concat([actualc_read, actualb_read], axis=0)
-actual.index = range(len(actual))  # needed to avoid duplicate index values
-actual = dateeom(actual)
-
-## extract account numbers to separate variable
-actual['Account'] = actual['Account'].str.strip()    # strip leading and trailing white space
-## create another column with budget line item number only because database not consistent with descriptions
-actual['AccountNum'] = actual.Account.str.extract('(\d+)')
-
-
-# %% [markdown]
-# Merge actual with map
-mapdf = map.loc[:, ('InOrOut', 'Category', 'AccountNum', 'Account')]
-mapdf.columns = ['InOrOut', 'Category', 'AccountNum', 'Account_map']
-actual = pd.merge(actual, mapdf, how='left', on='AccountNum')
-
-## flag any line items from ICON without Category assigned
-nan_values = actual[actual['Category'].isna()]
-if len(nan_values) != 0:
-    print('')
-    print('FATAL ERROR: Following ICON entries are missing a Category assignment in map.xlsx file')
-    print(nan_values)
-    sys.exit()
-
-print('actual')
-print(actual)
-
-## check actual for mismatched account names
-mask = (actual.Account != actual.Account_map)
-inconsistencies = actual[mask].copy()
-inconsistencies['Date'] = inconsistencies['Date'].astype(str)  
-
-
-## drop Account_map from actual
-actual = actual.drop(['Account_map'], axis=1)
-
-# %%
-## separate into actualb and actualc
-yearb = (actual.Date >= startb) & (actual.Date <= endb)
-yearc = (actual.Date >= startc) & (actual.Date <= endc)
-actualb = actual[yearb].copy()
-actualc = actual[yearc].copy()
-actualb.index = range(len(actualb))
-actualc.index = range(len(actualc))
+refresh = False
+if refresh == True:
+    actualb, actualc = icon(startb, endb, startc, endc)
+    actualb.to_csv('actualb.csv', index=False)
+    actualc.to_csv('actualc.csv', index=False)
+else:
+    actualb = pd.read_csv('actualb.csv')
+    actualc = pd.read_csv('actualc.csv')
+    actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
+    actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
+    actualb['AccountNum'] = actualb['AccountNum'].astype(str)
+    actualc['AccountNum'] = actualc['AccountNum'].astype(str)
 
 
 ###############################################################################
 # %% [markdown]
 ## Read investment data file  (NOT CODED YET)
-
 
 
 ###############################################################################
@@ -237,10 +97,7 @@ actualc.index = range(len(actualc))
 
 # %%
 ## prior month expenses
-actualbm = actualb.copy()
-## month_prior = actualb.Date.tail(1)
-## month_prior.index = range(len(month_prior))
-## actualbm = actualbm.loc[actualbm['Date'] == month_prior[0]]
+actualbm = dateeom(actualb.copy())
 actualbm = actualbm.loc[actualbm['Date'] == endb]
 actualbm
 
@@ -264,15 +121,42 @@ actualbm.columns = ['AccountNum', 'Accountbm', 'Current Month']
 # %%
 
 ## full, outer join (i.e., include any line item in any dataframe) for budget, ytdb, and ytdc
-temp = budget.loc[:, ['AccountNum', 'Account_budget_file', 'Budget']]
+temp = budget.loc[:, ['AccountNum', 'Accounta', 'Budget']]
 temp = pd.merge(temp, ytdb, how='outer', on='AccountNum')
 temp = pd.merge(temp, ytdc, how='outer', on='AccountNum')
 all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
 all = all.fillna(0)
+all.AccountNum = all.AccountNum.astype(str)
 all.index = range(len(all))
 
+
 # %%
-all = pd.merge(all, map, how='left', on='AccountNum')
+## left join with mapit
+all, missing = mapit(all, map)
+
+
+# %% [markup]
+## Check actual for mismatched account names
+mismatched_dict = []
+for row in range(len(all)):
+    a = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accounta']))
+    b = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accountb']))
+    c = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accountc']))
+    similar = max(a,b,c)
+    if similar < 1:
+        ## not 100% similar so add to mismatched_dict
+        mismatched_dict.append(
+            {
+                'AccountNum': all.loc[row,'AccountNum'],
+                'Similar': similar,
+                'Account': all.loc[row,'Account'],
+                'Account_budget': all.loc[row,'Accounta'],
+                'Account_actualb': all.loc[row,'Accountb'],
+                'Account_actualc': all.loc[row,'Accountc'],
+            }
+        )
+inconsistencies = pd.DataFrame(mismatched_dict)
+
 
 # %%
 ## select columns to keep
@@ -280,27 +164,11 @@ table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD
 
 
 # %% [markdown]
-# Add adjustment entries for linear YTD income
-mask = ((table.AccountNum == '4027') |   # Checking account
-        (table.AccountNum == '4045') |   # McDonald pledge from Covenant Fund
-        (table.AccountNum == '4047') |   # Covenant Fund
-        (table.AccountNum == '4048') |   # Covenant Fund for M&B
-        (table.AccountNum == '4041') |   # Endowment Income
-        (table.AccountNum == '4049') |   # UP Mission Fund Income
-        (table.AccountNum == '4051'))    # Tercentenary Income
-adjustments = table[mask].copy()
-
-## determine YTD for these based on the budget
-adjustments['Current Month'] = round(adjustments.Budget              / 12 - adjustments['Current Month'], 2)
-adjustments['Last YTD']      = 0
-adjustments.YTD              = round(adjustments.Budget * endb.month / 12 - adjustments.YTD, 2)
-adjustments.Budget           = 0
-adjustments.Account = adjustments['AccountNum'].astype(str) + " linear adjustment"
-
-## add to table
-## rbind = pd.concat([df1, df2], axis=0)
-table = pd.concat([table, adjustments], axis=0)
-table.index = range(len(table))
+## Add adjustment entries for linear YTD income
+apply_linear_adjustments = False
+if apply_linear_adjustments == True:
+    filename = 'budget_linear.xlsx'
+    table = linearadj(filename, table, startb, startc, endb)
 
 
 # %%
@@ -331,65 +199,20 @@ table.to_csv('table.csv', index=False)
 
 
 # %% [markdown]
-# Color pandas dataframe table
+# Create dataframe of table totals
+table_totals = tabletotals(table)
+
+## table_totals = table_totals.set_index(['InOrOut', 'Category'])  # create multiindex
+## print(table_totals.loc[('Expense', 'Adult Ed')])                # print one index combination
+## table_totals = table_totals.reset_index()                       # re-flatten multiindex
 
 
-# %%
-## rename 1st 3 to a, b, c
-temp = table.copy()
-temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
-desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds', 'AccountNum', 'flag']]
-nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
-
-## create multiindex for nums with subtotals then flatten again
-## the following was copied from online where 'a', 'b', and 'c' were the index columns
-## not sure how to generalize for other options, so I stuck with using a, b and c
-totals = pd.concat([
-        nums.assign(
-            **{x: '_Total' for x in 'abc'[i:]}
-        ).groupby(list('abc')).sum() for i in range(4)
-    ]).sort_index()
-totals = totals.reset_index()
-
-## combine desc and totals then rename a, b, c
-table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
-
-table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'AccountNum', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
-
-## move flag to end and drop AccountNum
-table_totals = table_totals[['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'flag']]
-
-## create multiindex
-table_totals = table_totals.set_index(['InOrOut', 'Category'])
-
-## print one table
-print(table_totals.loc[('Expense', 'Adult Ed')])
-
-table_totals = table_totals.reset_index()
-
-## first highlight various parts
-## add a flag for changes to category
-i = table_totals.reset_index().Category                     # first grab index "Category"
-table_totals['flag'] = list(i.ne(i.shift()).cumsum() % 2)   # add flag=1 when "Category" changes
-table_totals.style.apply(highlight, axis=1)                # highlight rows
-
-## create printable versions of tables by coverting num dollars to strings with $ signs: table_totals_print
-'''
-table_totals_print = table_totals.copy()
-table_totals_print['Budget']   = table_totals_print['Budget'].apply(dollars.to_str)
-table_totals_print['Last YTD'] = table_totals_print['Last YTD'].apply(dollars.to_str)
-table_totals_print['YTD']      = table_totals_print['YTD'].apply(dollars.to_str)
-table_totals_print['Current Month'] = table_totals_print['Current Month'].apply(dollars.to_str)
-print(table_totals_print)
-'''
-
-# %%
-
-## get summary view of table_totals: table_totals_summary, table_totals_summary_print
+# %% [markdown]
+## get summary view of table_totals
 table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], 
                                                 values=['Budget', 'YTD', 'Last YTD'], 
                                                 aggfunc=np.sum)
-## not sure why, but the above creaets df columns in order 'Budget', 'Last YTD', 'YTD'
+## not sure why, but the above creates df columns in order 'Budget', 'Last YTD', 'YTD'
 ## following puts them back in the order I want
 table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD']].copy()
 
