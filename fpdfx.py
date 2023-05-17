@@ -1,0 +1,215 @@
+def df2pdf(pdf, df):
+    '''
+    ## https://www.justintodata.com/generate-reports-with-python/
+    '''
+    # A cell is a rectangular area, possibly framed, which contains some text
+    # Set the width and height of cell
+    table_cell_width = 25
+    table_cell_height = 6
+    # Select a font as Arial, bold, 8
+    pdf.set_font('Arial', 'B', 8)
+    
+    # Loop over to print column names
+    cols = df.columns
+    for col in cols:
+        pdf.cell(table_cell_width, table_cell_height, col, align='C', border=1)
+    # Line break
+    pdf.ln(table_cell_height)
+    # Select a font as Arial, regular, 10
+    pdf.set_font('Arial', '', 10)
+    # Loop over to print each data in the table
+    for row in df.itertuples():
+        for col in cols:
+            value = str(getattr(row, col))
+            pdf.cell(table_cell_width, table_cell_height, value, align='C', border=1)
+        pdf.ln(table_cell_height)
+
+
+
+##############################################
+##  Following from:
+##  https://david-kyn.medium.com/workplace-automation-generate-pdf-reports-using-python-fa75c50e7715
+##############################################
+
+
+def create_letterhead(pdf, picture, WIDTH):
+    '''
+    adds letterhead pictuer and increases current y location from top
+    '''
+    pdf.image(picture, 0, 0, WIDTH)
+
+def create_title(pdf, title, titleh, th):
+    '''
+    pdf is the page object
+    title is the text to print
+    titleh is the title height
+    th is the text height for a single line (not the title)
+    '''
+    import datetime as dt
+
+    # Add main title
+    pdf.set_font('Helvetica', 'b', 20)  
+    pdf.ln(th)
+    pdf.write(titleh, title)          # pdf.write(height, string)
+
+    # Add main title but centered
+    # Cell(??, height, string, ??, ??, 'C')  # where 'C' centers text in cell
+    # unfortunately, the following does not recognize "->""
+    # pdf->Cell(0, 5, "text", 0, 0, 'C')
+
+    # Add date of report
+    pdf.set_font('Helvetica', '', 14)
+    pdf.set_text_color(r=128,g=128,b=128)
+    today = str(dt.date.today())                   # YYYY-MM-DD
+    # today = dt.date.today().strftime("%m/%d/%Y")   # MM/DD/YYYY
+    pdf.ln(th)
+    pdf.write(th, f'{today}')
+    
+    # Add line break
+    #pdf.ln(10)
+
+def write_to_pdf(pdf, words, th):
+    
+    # Set text colour, font size, and font type
+    pdf.set_text_color(r=0,g=0,b=0)
+    pdf.set_font('Helvetica', '', th)  # font size was 14 pt
+    
+    pdf.write(th, words)                # line height was 5 (not sure why there is size and height)
+
+
+def write2pdf(pdf, txt, family='Helvetica', style='', fs=None, th=None, w=0, align='L', ln=1, r=0, g=0, b=0):
+    '''
+    writes text to pdf object using FPDF.cell function
+
+    Input
+    -----
+    pdf = FPDF object
+    text = string to be printed
+    family = 'Courier' (default)
+    style  = '' for regular text (default)
+           = 'B' for bold
+           = 'I' for italix)
+    fs     = font size in pt. (default is 12 if th is not specified)
+                              (default is to calculate as fs = th * 25/10 if th is specified)
+    th     = text height      (default is to calculate as th = fs * 10/25)
+    w      = width of text (default of 0 specifies entire page width)
+    align  = 'L' for left justified
+           = 'C' for center justified
+           = 'R' for right justified
+    ln     = 0 to position cursor to the right after writing text
+           = 1 to position cursor to beginning of next line
+           = 2 to position cursor below
+    r      = red
+    g      = green
+    b      = blue
+    '''
+    from fpdf import FPDF
+
+    ## conversion
+    th2fs = 10/25   # th / fs = ratio of text height to font size
+
+    if (fs == None) & (th == None):
+        fs = 12
+    
+    if fs == None:
+        fs = th / th2fs
+    
+    if th == None:
+        th = fs * th2fs
+
+    ## write to pdf
+    pdf.set_font(family=family, style=style, size=fs) 
+    pdf.set_text_color(r=r,g=g,b=b)
+    pdf.cell(w=w, h=th, txt=txt, ln=ln, align=align)   # ln=1 is carriage return
+
+
+def pdftest():
+    from fpdf import FPDF
+    import fpdfx
+    pdf = FPDF() # A4 (210 x 297 mm which is 8.3 x 11.7 inches)
+    pdf.set_margins(left=10, top=15, right=10)
+    th = pdf.font_size_pt
+    print('pdf.font_size_pt =', th)
+    pdf.add_page()
+    print('current y =', FPDF.get_y(pdf))
+    # fpdfx.write2pdf(pdf, 'hello world1', fs=40)
+
+    ## set font size
+    fs = 12
+    ## convert to text height, th
+    h2size = 10/25
+    th = fs * h2size
+    pdf.set_font("Courier", size = fs) 
+    pdf.cell(w=200, h=th, txt='line 1', ln=1, align= '')   # ln=1 is carriage return
+    pdf.cell(w=200, h=th, txt='line 2', ln=1, align= '') 
+    pdf.cell(w=200, h=th, txt='line 3', ln=1, align= 'C')  # align='C' centers text
+
+    ## now try with write2pdf
+    fpdfx.write2pdf(pdf, 'line4')
+    fpdfx.write2pdf(pdf, 'line5', family='Helvetica', style='', fs=None, th=None, w=0, align='L', ln=1)
+    fpdfx.write2pdf(pdf, 'line6')
+    fpdfx.write2pdf(pdf, 'line7', family='Courier', style='B', fs=22, th=None, w=0, align='L', ln=1)
+    fpdfx.write2pdf(pdf, 'line8')
+    fpdfx.write2pdf(pdf, 'line9')
+    fpdfx.write2pdf(pdf, 'line10', family='Courier', style='', fs=None, th=22, w=0, align='C', ln=1)
+    fpdfx.write2pdf(pdf, 'line11')
+
+    print('current y =', FPDF.get_y(pdf))
+
+    ## export
+    pdf.output('test.pdf', 'F')
+
+
+from fpdf import FPDF
+class PDF(FPDF):
+    '''
+    Extends FPDF class to modify the footer function in the FPDF library
+    '''
+    def footer(self):
+        '''
+        Adds page number to PDF when invoked
+        '''
+        self.set_y(-15)
+        self.set_font('Helvetica', 'I', 8)
+        self.set_text_color(128)
+        self.cell(0, 10, 'Page ' + str(self.page_no()), 0, 0, 'C')
+
+
+################################################################################
+    '''
+    ### To write dataframe to a png file
+
+    import dataframe_image as dfi    # had to install with pip
+
+    df = pd.DataFrame({
+        'Date': ['2022-01-01', '2022-01-01', '2022-01-01', '2022-01-01'],
+        'Open': [18, 22, 19, 14],
+        'High': [20, 23, 19, 16],
+        'Low': [11, 22, 15, 14],
+        'Close': [18, 22, 19, 14],
+        'Volume': [1000, 1111, 1900, 1400]})
+
+    # Create a new column as Close 2 days moving average
+    df['Close_200ma'] = df['Close'].rolling(2).mean()
+
+    dfi.export(df, 'df2fig_example1.png')
+
+    def color_pos_neg_value(value):
+        if value < 0:
+            color = 'red'
+        elif value > 0:
+            color = 'green'
+        else:
+            color = 'black'
+        return 'color: %s' % color
+
+    styled_df = df.style.format({'Open': "{:.0f}",
+                                 'High': "{:.2f}",
+                                 'Low': "${:,.0f}",
+                                 'Close': "{:.2f}%"})\
+                  .hide_index().bar(subset=["Volume",], color='lightgreen')\
+                  .applymap(color_pos_neg_value, subset=['Close_200ma'])
+    
+    dfi.export(styled_df, 'df2fig_example2.png')
+    
+    '''
