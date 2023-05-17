@@ -27,7 +27,7 @@ def dateeom(dfin):
         year = df.Date[i].year
         month = df.Date[i].month
         day = calendar.monthrange(year, month)[1]
-        df.Date[i] = dt.date(year, month, day)
+        ## df.Date[i] = dt.date(year, month, day)
         df.at[i, 'Date'] = dt.date(year, month, day)
 
     df = df.reindex()
