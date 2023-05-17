@@ -38,10 +38,12 @@ from icon import icon     # gives access to all function icon() in icon.py; e.g.
 from linearadj import linearadj
 import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
 from highlight import highlight
+from write_excel import write_excel
 from dupacct import dupacct
 from dateeom import dateeom
 from tabletotals import tabletotals
 from plotit import plotit
+from dfplot_inout import dfplot_inout
 
 os.getcwd()
 
@@ -94,108 +96,12 @@ else:
 ###############################################################################
 # %% [markdown]
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
-
 # %%
-## prior month expenses
-actualbm = dateeom(actualb.copy())
-actualbm = actualbm.loc[actualbm['Date'] == endb]
-actualbm
-
-# %%
-## for year to date summations, create new dataframes stripping actualc to same duration as actualb
-ytdb = actualb.copy()
-ytdc = actualc.copy()
-ytdc = ytdc.loc[(actualc['Date'] >= startc) & (actualc['Date'] <= (startc + (endb - startb)))]
-
-# %%
-## use pivot table to sum ytd and current month totals
-## pivot = budget.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values='Budget', aggfunc=np.sum)
-ytdb = ytdb.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-ytdb.columns = ['AccountNum', 'Accountb', 'YTD']
-ytdc = ytdc.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-ytdc.columns = ['AccountNum', 'Accountc', 'Last YTD']
-actualbm = actualbm.pivot_table(index=['AccountNum', 'Account'], values='Amount', aggfunc=np.sum).reset_index()
-actualbm.columns = ['AccountNum', 'Accountbm', 'Current Month']
-
-
-# %%
-
-## full, outer join (i.e., include any line item in any dataframe) for budget, ytdb, and ytdc
-temp = budget.loc[:, ['AccountNum', 'Accounta', 'Budget']]
-temp = pd.merge(temp, ytdb, how='outer', on='AccountNum')
-temp = pd.merge(temp, ytdc, how='outer', on='AccountNum')
-all = pd.merge(temp, actualbm, how='outer', on='AccountNum')
-all = all.fillna(0)
-all.AccountNum = all.AccountNum.astype(str)
-all.index = range(len(all))
-
-
-# %%
-## left join with mapit
-all, missing = mapit(all, map)
-
-
-# %% [markup]
-## Check actual for mismatched account names
-mismatched_dict = []
-for row in range(len(all)):
-    a = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accounta']))
-    b = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accountb']))
-    c = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accountc']))
-    similar = max(a,b,c)
-    if similar < 1:
-        ## not 100% similar so add to mismatched_dict
-        mismatched_dict.append(
-            {
-                'AccountNum': all.loc[row,'AccountNum'],
-                'Similar': similar,
-                'Account': all.loc[row,'Account'],
-                'Account_budget': all.loc[row,'Accounta'],
-                'Account_actualb': all.loc[row,'Accountb'],
-                'Account_actualc': all.loc[row,'Accountc'],
-            }
-        )
-inconsistencies = pd.DataFrame(mismatched_dict)
-
-
-# %%
-## select columns to keep
-table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
-
-
-# %% [markdown]
-## Add adjustment entries for linear YTD income
+from tableit import tableit
 apply_linear_adjustments = False
-if apply_linear_adjustments == True:
-    filename = 'budget_linear.xlsx'
-    table = linearadj(filename, table, startb, startc, endb)
-
-
-# %%
-## eliminate any rows in table where all entries are $0
-#mask = (table.Budget != 0) & (table.YTD != 0) & (table['Last YTD'] != 0) & (table['Current Month'] != 0)
-mask = (table.Budget == 0) & (table.YTD == 0) & (table['Last YTD'] == 0) & (table['Current Month'] == 0)
-table = table[-mask].copy()
-table.index = range(len(table))
-
-
-# %%
-## sort table and add a flag for changes to category
-##table = table.sort_values(by = ['Account', 'Category', 'InOrOut'], ascending=True, na_position='last')
-table = table.sort_values(by = ['InOrOut', 'Category', 'Account'], ascending=True, na_position='last')
-i = table.Category    
-table['flag'] = i.ne(i.shift()).cumsum() % 2
-table.style.apply(highlight, axis=1)
-
-
-## save table to csv
-table.to_csv('table.csv', index=False)
-
-
-# %%
-## dlh restart from here
-# table = pd.read_csv('table.csv')
-
+table, inconsistencies = tableit(map, budget, actualb, actualc, 
+                                 startb, endb, startc, endc,
+                                 apply_linear_adjustments)
 
 
 # %% [markdown]
@@ -203,18 +109,18 @@ table.to_csv('table.csv', index=False)
 table_totals = tabletotals(table)
 
 ## table_totals = table_totals.set_index(['InOrOut', 'Category'])  # create multiindex
-## print(table_totals.loc[('Expense', 'Adult Ed')])                # print one index combination
+## print(table_totals.loc[('Out', 'Adult Ed')])                # print one index combination
 ## table_totals = table_totals.reset_index()                       # re-flatten multiindex
 
 
 # %% [markdown]
 ## get summary view of table_totals
 table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], 
-                                                values=['Budget', 'YTD', 'Last YTD'], 
+                                                values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
                                                 aggfunc=np.sum)
 ## not sure why, but the above creates df columns in order 'Budget', 'Last YTD', 'YTD'
 ## following puts them back in the order I want
-table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD']].copy()
+table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD', 'Current Month']].copy()
 
 '''
 table_totals_summary_print = table_totals_summary.copy()
@@ -227,164 +133,90 @@ print(table_totals_summary_print)
 
 # %%
 ## export tables to Excel
-## https://betterdatascience.com/style-pandas-dataframes/
-## example:
-##    df.style.background_gradient(cmap="RdYlGn").to_excel("table.xlsx")
-
-## https://github.com/pandas-dev/pandas/issues/39602
-'''
-df = pd.DataFrame(np.random.randn(2,2), index=['Big School', 'Little School'], columns=['Data 1', 'More Data'])
-df.style.format({'Data 1': '{:,.1f}', 'More Data': '{:,.3f}'})\
-        .set_table_styles([{'selector': 'td', 'props': [('text-align', 'center'),
-                                                        ('color', 'red')]},
-                           {'selector': '.col_heading', 'props': [('text-align', 'right'),
-                                                                  ('color', 'green'),
-                                                                  ('width', '150px')]},
-                           {'selector': '.row_heading', 'props': [('text-align', 'left'),
-                                                                  ('color', 'blue')]}])
-'''
-
 filename = 'budget_out_' + str(endb) + '.xlsx'
-table.style.apply(highlight, axis=1).to_excel(filename, sheet_name='budget', index=False)
-## append additional sheets
-with pd.ExcelWriter(filename,mode='a') as writer:  
-    ## table_totals.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals')
-    ## table_totals_print.to_excel(writer, sheet_name='budget_totals')  # exports $ as left justified strings
-    table_totals.style.apply(highlight, axis=1)\
-                .to_excel(writer, sheet_name='budget_totals', index=False)           # exports $ as numbers but not currency
-with pd.ExcelWriter(filename,mode='a') as writer:  
-    ## table_totals_summary.style.apply(highlight, axis=1).to_excel(writer, sheet_name='budget_totals_summary')
-    ## table_totals_summary_print.to_excel(writer, sheet_name='budget_totals_summary')
-    table_totals_summary.to_excel(writer, sheet_name='budget_totals_summary')
-    ## table_totals_summary.style.set_properties(**{'text-align': 'left'})\
-    ##                    .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
-    ## table_totals_summary.style.set_table_styles([{'selector': '.row_heading', 'props': [('text-align', 'left')]}])\
-    ##                     .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
-with pd.ExcelWriter(filename,mode='a') as writer:  
-    actualb_read.to_excel(writer, sheet_name='actuals budget year')
-with pd.ExcelWriter(filename,mode='a') as writer:  
-    actualc_read.to_excel(writer, sheet_name='actuals comparison year')
-with pd.ExcelWriter(filename,mode='a') as writer:  
-    inconsistencies.to_excel(writer, sheet_name='inconsistencies')
+write_excel(filename, table, table_totals, table_totals_summary, actualb, actualc, inconsistencies)
 
 
-
-
-# dlh end
 
 ###############################################################################
 # %% [markdown]
-## create plots
+## Create Income / Expense plots
 
-# %%
-## collect ytdb and ytdc info by date, and in/out and category
-dfactualb = actualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
-dfactualc = actualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
-
-## plot total income vs expense
-# %%
-## get list of income and expense categories from budget
-budgettotals = budget.pivot_table(index=['InOrOut', 'Category'], 
-                                  values=['Budget'], 
-                                  aggfunc=np.sum)
-categories = budgettotals.reset_index()
-
-## sort categories so income is first then renumber categories
-categories = categories.sort_values(by=['InOrOut', 'Category'], ascending=[False,True], na_position='last')
-categories.index = range(len(categories))
 
 # %%
 ## change year of actualc to budget year for plotting
 actualc_adj = actualc.copy()
 for i in range(len(actualc)):
     actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
-                                         actualc.loc[i,'Date'].month, 
-                                         actualc.loc[i,'Date'].day)
+                                        actualc.loc[i,'Date'].month, 
+                                        actualc.loc[i,'Date'].day)
 
-# %% [markdown]
-## Create plot for all income and expenses
+## create dataframe of total income and expenses by date for budget, YTD, and prior year
+plot_inout = dfplot_inout(map, table, actualb, actualc_adj, 
+                          startb, endb, startc, endc)
 
-# %% 
 ## create folder for figures if one does not already exist
 path = 'figures/'
 if not os.path.exists(path):
    os.makedirs(path)
 
-## create budget in/out dataframe
-endb_year = dt.date(endb.year, 12, 31)
-df = budget.copy()
-df = df.groupby('InOrOut').sum().abs()
-df = pd.DataFrame({"Date":[startb, endb_year, startb, endb_year],
-                   "Amount": [0, df.loc['Income','Budget'], 0, df.loc['Expense','Budget']],
-                   "InOrOut": ['Income', 'Income', 'Expense', 'Expense']})
-df['Legend'] = 'Budget'
-budget_inout = df.copy()
-
-## create same dataframe for budget year Income and Expenses
-df = actualb.copy()
-df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
-df.Amount = df.Amount.abs()
-df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
-df['Legend'] = 'YTD'
-actualb_inout = df.copy()
-
-## create same dataframe for comparison year Income and Expenses
-df = actualc_adj.copy()
-df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
-df.Amount = df.Amount.abs()
-df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
-df['Legend'] = 'Prior year'
-actualc_inout = df.copy()
-
-## combine
-df_plots = pd.concat([budget_inout, actualb_inout, actualc_inout], axis=0)
-
-# %%
 ## plot Income
-df = df_plots.loc[df_plots['InOrOut'] == 'Income']
+df = plot_inout.loc[plot_inout['InOrOut'] == 'In']
 plotit(df=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
        title='Overall Income', filename=path + 'all_income.png')
 
 ## plot Expense
-df = df_plots.loc[df_plots['InOrOut'] == 'Expense']
+df = plot_inout.loc[plot_inout['InOrOut'] == 'Out']
 plotit(df=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
        title='Overall Expenses', filename=path + 'all_expenses.png')
 
+
+###############################################################################
+# %%
+### collect ytdb and ytdc info by date, and in/out and category
+#dfactualb, missingb = mapit(actualb, map)   # add "InOrOut" and "Category" to actualb
+#dfactualc, missingc = mapit(actualc, map)
+#dfactualb = dfactualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+#dfactualc = dfactualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
+
+###############################################################################
 # %%
 ## Income / Expense Summary Table
-df = table_totals_summary.copy().reset_index()   # flatten pivot
-df.loc[df['InOrOut'] == 'Income' , 'InOrOut'] = '1. Income' 
-df.loc[df['InOrOut'] == 'Expense', 'InOrOut'] = '2. Expense' 
-df.loc[df['InOrOut'] == '_Total' , 'InOrOut'] = '3. Grand Total' 
-df = df.pivot_table(index=['InOrOut', 'Category'], 
-                    values=['Budget', 'YTD', 'Last YTD'], 
-                    aggfunc=np.sum)
-df = df[['Budget', 'YTD', 'Last YTD']]   # pivot did not preserve this order
-## df = df.sort_index(ascending=[False, True])
-## following messed up the table
-## df = df.style.format({'Budget'  : "${:,.0f}",
-##                       'YTD'     : "${:,.0f}",
-##                       'Last YTD': "${:,.0f}"}\
-##                     .hide_index())
+df = table_totals_summary.copy()
 df['Budget'] = df['Budget'].apply(dollars.to_str)
 df['YTD'] = df['YTD'].apply(dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(dollars.to_str)
+df['Current Month'] = df['Current Month'].apply(dollars.to_str)
 ## https://towardsdatascience.com/make-your-tables-look-glorious-2a5ddbfcc0e5
 dfi.export(df, path+'all_table.png', dpi=300)    ## bug does not allow large enough table
 
 # %%
-dfi.export(df.loc[('1. Income')], path+'income_table.png', dpi=300)    ## bug does not allow large enough table
-dfi.export(df.loc[('2. Expense')], path+'expense_table.png', dpi=300)    ## bug does not allow large enough table
-dfi.export(df.loc[('3. Grand Total')], path+'total_table.png', dpi=300)    ## bug does not allow large enough table
+# bug possibly fixed
+#dfi.export(df.loc[('In')], path+'income_table.png', dpi=300)    ## bug does not allow large enough table
+#dfi.export(df.loc[('Out')], path+'expense_table.png', dpi=300)    ## bug does not allow large enough table
+#dfi.export(df.loc[('_Total')], path+'total_table.png', dpi=300)    ## bug does not allow large enough table
 
 
 # %%
-see ideas here
-https://stackoverflow.com/questions/35634238/how-to-save-a-pandas-dataframe-table-as-a-png
+## see ideas here
+## https://stackoverflow.com/questions/35634238/how-to-save-a-pandas-dataframe-table-as-a-png
 
 
-# %%
+###############################################################################
+# %% [markdown]
 ## create plots for each category
+
+# %%
+
+## get list of income and expense categories from budget
+budgettotals = table.pivot_table(index=['InOrOut', 'Category'], 
+                                values=['Budget'], 
+                                aggfunc=np.sum)
+categories = budgettotals.reset_index()
+
+actualb, junk = mapit(actualb, map)
+actualc, junk = mapit(actualc, map)
+
 for row in range(len(categories)):
     inout = categories.loc[row, 'InOrOut']
     category = categories.loc[row, 'Category']
@@ -399,7 +231,7 @@ for row in range(len(categories)):
 
     ## extract budget value
     budget_value = budgettotals.loc[(inout, category), 'Budget']
-    budget_plot = pd.DataFrame({"Date":[startb, endb_year],
+    budget_plot = pd.DataFrame({"Date":[startb, dt.date(endb.year, 12, 31)],
                                 "Amount": [0, budget_value],
                                 "Legend": ['Budget', 'Budget']})
     
@@ -422,7 +254,7 @@ for row in range(len(categories)):
     ## create plot
     filename = "category_{0:01d}".format(row)
     plotit(df=df_plot, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
-       title=inout + ": " + category, filename=path+filename+'.png')
+       title=inout + ": " + category, filename=path+filename+'_plot.png')
 
     ## create table
     df = table.loc[(table.InOrOut == inout) & (table.Category == category),:].copy()
@@ -448,41 +280,19 @@ for row in range(len(categories)):
         dfi.export(df, path+filename+'_table.png', dpi=300)
 
 
-# %%
-## select associated table with budget, YTD, and last YTD by account
-df_table = table_totals.loc[(inout, category)]
-df_table.index = range(len(df_table.index))
-
-## create plot
-#fig, ax = plt.subplots(nrows=1, ncols=1)  # nrows=1 is the default
-#sns.scatterplot(data=df_plot, x='assists', y='points', hue='team', ax=ax)
-
-## add table
-#table = plt.table(cellText=df.values,
-#                  rowLabels=df.index,
-#                  colLabels=df.columns, 
-#                  ## bbox=(.2, -.7, 0.5, 0.5)) # below table
-#                  bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
+###############################################################################
+# %% [markdown]
+## Create PDF
 
 # %%
-
-
-#fig,ax = plt.subplots(nrows=n, ncols=1, figsize=(8,11), sharex=False)  # sharex=FALSE to have different range on each x-axis
-#for i in range(n):
-#    plt.sca(ax[i])
-#    sns.lineplot(data=df, x='assists', y='points', hue='team'
-#                ).set(title= inout + " " category)
-#    table = plt.table(cellText=df.values,
-#                rowLabels=df.index,
-#                colLabels=df.columns, 
-#                bbox=(1.1, 0, 2.3, 1))       #  xmin, ymin, width, height
-#    plt.tight_layout() # can be needed to avoid crowding axis labels
+from pdf import pdf
+fileout = 'budget_report_' + str(endb) + '.pdf'
+pdf(path, fileout, endb)
 
 
 
-
-
-
+###############################################################################
+###############################################################################
 ###############################################################################
 ###############################################################################
 # %%
@@ -497,7 +307,7 @@ df_table.index = range(len(df_table.index))
 
 
 ## extract budget value
-b = multi.loc[(multi.index   == ('Expense', 'Adult Ed')) &
+b = multi.loc[(multi.index   == ('Out', 'Adult Ed')) &
               (multi.Account == '_Total'), 
               'Budget'].values
 
@@ -661,7 +471,7 @@ def plottable(df, title):
 
 
 ## pivot = table1.pivot_table(index=['InOrOut', 'Committee', 'GreenSheet'], values=['Budget', 'YTD', 'Last YTD'], aggfunc=np.sum)
-for inout in ['Expense', 'Income']:
+for inout in ['Out', 'In']:
     for category in list(multi.Category)
         table = multi[(multi.InOrOut == inout) & (multi.Category == category))]
         
@@ -671,13 +481,13 @@ for inout in ['Expense', 'Income']:
 
 
 ## Prepared dataframes: budget, actualb, actualc
-for inout in ['Income', 'Expense']:
+for inout in ['In', 'Out']:
     for plot in list(budget.loc[(budget.InOrOut == inout) & (budget['Committee'].str.contains("Contributions"))]['Committee']))
 
 
 
-##          if InOrOut == 'Income'  and    Committee       contains "Contributions", then sum "Budget" values
-sum(budget.loc[(budget.InOrOut == 'Income') & (budget['Committee'].str.contains("Contributions"))]['Budget'])
+##          if InOrOut == 'In'  and    Committee       contains "Contributions", then sum "Budget" values
+sum(budget.loc[(budget.InOrOut == 'In') & (budget['Committee'].str.contains("Contributions"))]['Budget'])
 
 ## aggregate to determine total for each budget area
 ##      df.loc['2023'] gets all 2023 data
