@@ -39,7 +39,7 @@ def tabletotals(table):
     table_totals.style.apply(highlight, axis=1)                # highlight rows
 
     ## table_totals = table_totals.set_index(['InOrOut', 'Category'])  # create multiindex
-    ## print(table_totals.loc[('Expense', 'Adult Ed')])                # print one index combination
+    ## print(table_totals.loc[('Out', 'Adult Ed')])                # print one index combination
     ## table_totals = table_totals.reset_index()                       # re-flatten multiindex
 
     ## create printable versions of tables by coverting num dollars to strings with $ signs: table_totals_print
