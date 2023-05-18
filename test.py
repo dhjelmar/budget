@@ -1,4 +1,25 @@
 # %%
+import pandas as pd
+import datetime as dt
+import seaborn as sns
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np
+import regex as re
+import sys
+import calendar
+
+# %%
+## pull subset list of matches to "wanted" from "mylist"
+mylist = ['ones', 'twos', 'threes', 'threes1', 'threes2', 'fours']
+wanted = 'three'
+result = list(filter(lambda x: wanted in x, mylist))
+print(result)
+
+
+
+
+# %%
 from erase import erase
 a = 'asdfg'
 print('before erase: a = ', a)
