@@ -96,6 +96,7 @@ else:
 ###############################################################################
 # %% [markdown]
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
+
 # %%
 from tableit import tableit
 apply_linear_adjustments = False
