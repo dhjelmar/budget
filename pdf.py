@@ -1,4 +1,4 @@
-def pdf(path, fileout, endb):
+def pdf(path, fileout, endb, layout):
     '''
     Create PDF of figures in path
     https://pyfpdf.readthedocs.io/en/latest/reference/image/index.html
@@ -24,16 +24,25 @@ def pdf(path, fileout, endb):
     WIDTH = 210
     MARGIN = 12
     SEPARATION = 2
-    ## 2 columns split 1/2 and 1/2
+    ## 2 columns split 1/2 and 1/2 for income/expense plots
     EVEN1X = MARGIN
     EVEN1W = WIDTH / 2 - MARGIN - SEPARATION/2
     EVEN2X = WIDTH / 2          + SEPARATION/2
     EVEN2W = EVEN1W
-    ## 2 columns split 1/3 and 2/3
-    COL1X = MARGIN
-    COL1W = WIDTH / 3 - MARGIN - SEPARATION
-    COL2X = COL1X + COL1W + SEPARATION
-    COL2W = WIDTH - COL2X - MARGIN
+    ## set layout for detail plots
+    if layout == 'COL':
+        ## 2 columns split 1/3 and 2/3
+        PLOTX = MARGIN
+        PLOTW = WIDTH / 3 - MARGIN - SEPARATION
+        TABX = PLOTX + PLOTW + SEPARATION
+        TABW = WIDTH - TABX - MARGIN
+    else:
+        ## alternate plots then tables
+        PLOTX = MARGIN
+        PLOTW = WIDTH - MARGIN*2
+        TABX = PLOTX
+        TABW = PLOTW
+    ## set layout to specify EVEN, COL, or ALT which alternates between plots and tables
     HEIGHT = 297
     letterhead_picture = 'frcs_header.png'
 
@@ -80,8 +89,6 @@ def pdf(path, fileout, endb):
     print('y before add in/out figures', FPDF.get_y(pdf))
 
     # Add income and expense figures:  pdf.image(file,x,y,w)
-    #pdf.image(path+"all_income.png"  , x=COL1X, w=COL1W)
-    #pdf.image(path+"all_expenses.png", x=COL1X, w=COL1W)
     pdf.image(path+"all_income.png"  , x=EVEN1X, w=EVEN1W)
     pdf.image(path+"all_expenses.png", x=EVEN2X, y=current_y, w=EVEN2W)
     print('y after add in/out figures', FPDF.get_y(pdf))
@@ -96,7 +103,6 @@ def pdf(path, fileout, endb):
     ##        ploth = img.height
 
     # Add income/expense table
-    #pdf.image(path+"all_table.png", x=COL2X, y=current_y, w=COL2W)
     pdf.ln(th/2)                               # pdf.ln(th) increments current y by th
     current_y = FPDF.get_y(pdf)
     MARGINB = 2*MARGIN
@@ -110,7 +116,7 @@ def pdf(path, fileout, endb):
 
     #############################################################################
     '''
-    Second Page of PDF
+    Subsequent Pages of PDF
     '''
     ## identify list of category files
     filelist = os.listdir(path)
@@ -123,7 +129,7 @@ def pdf(path, fileout, endb):
     ## Add some words to PDF
     fpdfx.write2pdf(pdf, 'Detailed Income and Expense Reports', fs=14, style='B')
 
-    for i in range(1, len(numplots)):
+    for i in range(0, len(numplots)):
         
         ## starting y-location on page
         pdf.ln(th)
@@ -131,7 +137,7 @@ def pdf(path, fileout, endb):
         
         ## print y location to screen
         print('')
-        print('new category starts at y =', current_y)
+        print('category', i, 'starts at y =', current_y)
 
         ## identify plot and corresponding table(s)
         plotfile = "category_{0:01d}_plot".format(i) + '.png'
@@ -142,55 +148,59 @@ def pdf(path, fileout, endb):
 
         ## first get height of each plot and set of tables to makes sure they fit on page
         plt_height = Image.open(path + plotfile).height
-        plt_width = Image.open(path + plotfile).height
+        plt_width = Image.open(path + plotfile).width
         # scale height to pdf units
-        COL1H = COL1W * plt_height / plt_width
-        COL2H = 0
+        PLOTH = PLOTW * plt_height / plt_width
+        TABH = 0
         for tablefile in tablematch:
            # get image height and width in pixels
            img_height = Image.open(path + tablefile).height
            img_width  = Image.open(path + tablefile).width
            # scale height to pdf units
-           COL2H = COL2H + COL2W * img_height / img_width
-        category_height = max(COL1H, COL2H)
-        max_y_needed_needed = current_y + category_height
-        if max_y_needed_needed > max_y:
+           TABH = TABH + TABW * img_height / img_width
+        if layout == 'COL':
+            category_height = max(PLOTH, TABH)
+        else:
+            category_height = PLOTH + th + TABH
+        max_y_needed = current_y + category_height
+        if max_y_needed > max_y:
             pdf.add_page()
             print('added new page to fit plot and table(s) for category', i)
+            print('max_y_needed =', max_y_needed, '> max_y =', max_y)
             print('resetting current_y to top of page')
             current_y = MARGIN
             pdf.set_y(current_y)
 
         ## Add plot and table(s) for each category
         print('Adding', path + plotfile)
-        pdf.image(path + plotfile, x=COL1X, w=COL1W)
+        pdf.image(path + plotfile, x=PLOTX, w=PLOTW)
 
         ## plotbottom y-location
         plotbottom = FPDF.get_y(pdf)
         print('plot bottom =', plotbottom)
 
+        if layout != 'COL':
+            pdf.ln(th)   # add a line break
+            current_y = plotbottom + th
+
         ## Add corresponding table(s)
         for tablefile in tablematch:
-           print('Adding', path + tablefile)
-           pdf.image(path + tablefile, x=COL2X, y=current_y, w=COL2W)   
+            print('Adding', path + tablefile)
+            pdf.image(path + tablefile, x=TABX, y=current_y, w=TABW)   
 
-           ## problem: get_y() not incrementing after pdf.image()
-           ## suggestion to use PIL (a.k.a., pillow)
-           ## https://stackoverflow.com/questions/47339043/get-y-value-of-the-image-bottom-in-fpdf-in-python
-           #y = pdf.get_y()
-           #img_height = Image.open(imagePath).height/10
-           #y = y + img_height + 10
-           #pdf.set_y(y)
-           # get image height and width in pixels
-           img_height = Image.open(path + tablefile).height
-           img_width  = Image.open(path + tablefile).width
-           # scale height to pdf units
-           COL2H = COL2W * img_height / img_width
-           current_y = current_y + COL2H
-           pdf.set_y(current_y)
+            ## problem: get_y() not incrementing after pdf.image()
+            ## suggestion to use PIL (a.k.a., pillow)
+            ## https://stackoverflow.com/questions/47339043/get-y-value-of-the-image-bottom-in-fpdf-in-python
+            # get image height and width in pixels
+            img_height = Image.open(path + tablefile).height
+            img_width  = Image.open(path + tablefile).width
+            # scale height to pdf units
+            TABH = TABW * img_height / img_width
+            current_y = current_y + TABH
+            pdf.set_y(current_y)
 
-           current_y = FPDF.get_y(pdf)
-           print('table bottom =', current_y)
+            current_y = FPDF.get_y(pdf)
+            print('table bottom =', current_y)
 
         pdf.set_y(max(plotbottom, current_y))
         

@@ -53,6 +53,8 @@ os.getcwd()
 ## Set budget and comparison year start and end dates
 startb, endb, startc, endc = set_dates()
 
+## set layout for plots ('COL' for columns or 'ALT' for alternating plots/tables)
+layout = 'ALT'
 
 ###############################################################################
 # %% [markdown]
@@ -254,8 +256,12 @@ for row in range(len(categories)):
 
     ## create plot
     filename = "category_{0:01d}".format(row)
+    if layout == 'COL':
+        figsize = (6,4)
+    else:
+        figsize = (11,2)
     plotit(df=df_plot, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
-       title=inout + ": " + category, filename=path+filename+'_plot.png')
+           title=inout + ": " + category, filename=path+filename+'_plot.png', figsize=figsize)
 
     ## create table
     df = table.loc[(table.InOrOut == inout) & (table.Category == category),:].copy()
@@ -288,7 +294,7 @@ for row in range(len(categories)):
 # %%
 from pdf import pdf
 fileout = 'budget_report_' + str(endb) + '.pdf'
-pdf(path, fileout, endb)
+pdf(path, fileout, endb, layout)
 
 
 
