@@ -117,13 +117,24 @@ table_totals = tabletotals(table)
 
 
 # %% [markdown]
-## get summary view of table_totals
-table_totals_summary = table_totals.pivot_table(index=['InOrOut', 'Category'], 
-                                                values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
-                                                aggfunc=np.sum)
+## get summary view of table
+table_totals_summary = table.pivot_table(index=['InOrOut', 'Category'], 
+                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
+                                         aggfunc=np.sum)
 ## not sure why, but the above creates df columns in order 'Budget', 'Last YTD', 'YTD'
 ## following puts them back in the order I want
 table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD', 'Current Month']].copy()
+table_totals_summary = table_totals_summary.reset_index()
+keepcols = table_totals_summary.columns
+
+## add in the "_Total" rows
+totalrows = table_totals.loc[table_totals.Account == '_Total']
+totalrows = totalrows[keepcols]
+
+## combine with table_totals_summary and resort
+table_totals_summary = pd.concat([table_totals_summary, totalrows], axis=0)   # rbind
+table_totals_summary = table_totals_summary.sort_values(by = ['InOrOut', 'Category'], ascending=True, na_position='last')
+
 
 '''
 table_totals_summary_print = table_totals_summary.copy()
@@ -133,6 +144,16 @@ table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].
 print(table_totals_summary_print)
 '''    
 
+# %%
+## test error with table_totals_summary
+#df = table_totals.head(20).copy()
+### only keep the columns I need
+#df = df[['InOrOut', 'Category', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
+#df.pivot_table(index=['InOrOut', 'Category'], 
+#               values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
+#               aggfunc=np.sum).copy()
+#print(df)
+#print(df.pivot_table)
 
 # %%
 ## export tables to Excel
