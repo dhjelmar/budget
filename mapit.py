@@ -1,3 +1,4 @@
+# %%
 def mapit(dataframe, map):
     '''
     pd.merge(dataframe, map, how='left', on='AccountNum')
@@ -29,10 +30,24 @@ def mapit(dataframe, map):
         df['dollarsum'] = 0   # initialize new variable
         for i in dollarfields:
             df.loc[mask, 'dollarsum'] = df.loc[mask, 'dollarsum'] + df.loc[mask, i]
-        df.loc[(df.InOrOut.isna() & df.dollarsum >= 0), 'InOrOut'] = 'In' 
-        df.loc[(df.InOrOut.isna() & df.dollarsum <  0), 'InOrOut'] = 'Out' 
-
-
-    print(df)
+        df.loc[(df.InOrOut.isna()) & (df.dollarsum >= 0), 'InOrOut'] = 'In' 
+        df.loc[(df.InOrOut.isna()) & (df.dollarsum <  0), 'InOrOut'] = 'Out' 
 
     return df, nan_values
+
+
+#import pandas as pd
+#df = pd.DataFrame({"A" : [14, 4, 5, 4, 1],
+#                   "AccountNum" : ['100', '200', '300', '400', '500'],
+#                   "Amount" : [1,2,-3,-4,-5],
+#                   "Amounta" : [2,3,-1,-1,-1]})
+#map = pd.DataFrame({"InOrOut" : ['In', 'Out'],
+#                    "Category" : ['asdf', 'jkl;'],
+#                    "GreenSheet" : ['one', 'two'],
+#                    "SourceOfFunds" : ['end', 'cov'],
+#                    "Account" : ['200 some income', '300 some expense'],
+#                    "AccountNum" : ['200', '300'] })
+#out, junk = mapit(df,map)
+#out
+
+# %%
