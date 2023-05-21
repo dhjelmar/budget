@@ -128,11 +128,10 @@ table_totals_summary = table_totals_summary.reset_index()
 keepcols = table_totals_summary.columns
 
 ## add in the "_Total" rows
-totalrows = table_totals.loc[table_totals.Account == '_Total']
-totalrows = totalrows[keepcols]
+table_totals_summary = table_totals.loc[table_totals.Account == '_Total']
+table_totals_summary = table_totals_summary[keepcols]
 
-## combine with table_totals_summary and resort
-table_totals_summary = pd.concat([table_totals_summary, totalrows], axis=0)   # rbind
+## sort (may not be needed) and create multi-index
 table_totals_summary = table_totals_summary.sort_values(by = ['InOrOut', 'Category'], ascending=True, na_position='last')
 
 
