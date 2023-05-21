@@ -17,8 +17,6 @@ result = list(filter(lambda x: wanted in x, mylist))
 print(result)
 
 
-
-
 # %%
 from erase import erase
 a = 'asdfg'
@@ -255,3 +253,21 @@ df.style.apply(highlight, axis=1)
 [Hopefully this is an image of the output](https://i.stack.imgur.com/3uon9.png).
 
 I cannot figure out how to make the row where df.C == 7 both colored and bold.
+
+
+# %%
+## pivot
+df = pd.DataFrame({"InOrOut"  : ['In', 'In', 'In', 'Out', 'Out'],
+                   "Category" : ['one', 'one', 'two', 'two', 'three'],
+                   "Budget" : [1,1,1,1,1], 
+                   "YTD" : [2,2,2,2,2],
+                   "Last YTD" : [3,3,3,3,3],
+                   "Current Month" : [5,5,5,5,5]}) 
+
+df_pivot = df.pivot_table(index=['InOrOut', 'Category'], 
+                          values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
+                          aggfunc=np.sum)
+print(df)
+print(df_pivot)
+
+# %%
