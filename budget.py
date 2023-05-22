@@ -116,24 +116,21 @@ table_totals = tabletotals(table)
 ## table_totals = table_totals.reset_index()                       # re-flatten multiindex
 
 
+
 # %% [markdown]
 ## get summary view of table
-table_totals_summary = table.pivot_table(index=['InOrOut', 'Category'], 
-                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
-                                         aggfunc=np.sum)
-## not sure why, but the above creates df columns in order 'Budget', 'Last YTD', 'YTD'
-## following puts them back in the order I want
-table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD', 'Current Month']].copy()
-table_totals_summary = table_totals_summary.reset_index()
-keepcols = table_totals_summary.columns
-
-## add in the "_Total" rows
-table_totals_summary = table_totals.loc[table_totals.Account == '_Total']
-table_totals_summary = table_totals_summary[keepcols]
-
-## sort (may not be needed) and create multi-index
-table_totals_summary = table_totals_summary.sort_values(by = ['InOrOut', 'Category'], ascending=True, na_position='last')
-
+table_totals_summary = table_totals.copy()
+# identify all rows to drop
+mask = ((table_totals.InOrOut  != '_Total') &
+       (table_totals.Category != '_Total') &
+       (table_totals.Account  == '_Total'))
+# invert mask
+mask = ~mask
+table_totals_summary = table_totals_summary.loc[mask]
+# convert to pivot
+table_totals_summary = table_totals_summary.pivot_table(index=['InOrOut', 'Category'], 
+                                                        values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
+                                                        aggfunc=np.sum)
 
 '''
 table_totals_summary_print = table_totals_summary.copy()
