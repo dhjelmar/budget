@@ -28,6 +28,7 @@ import sys
 import calendar
 import dataframe_image as dfi    # had to install with pip
 import jellyfish
+import os
 
 ## import my functions
 from set_dates import set_dates
@@ -55,6 +56,10 @@ startb, endb, startc, endc = set_dates()
 
 ## set layout for plots ('COL' for columns or 'ALT' for alternating plots/tables)
 layout = 'ALT'
+
+## set whether to apply linear adjustments for Covenant, Endowment, UP Fund, Tercentenary income
+apply_linear_adjustments = True
+
 
 ###############################################################################
 # %% [markdown]
@@ -89,6 +94,22 @@ else:
     actualb['AccountNum'] = actualb['AccountNum'].astype(str)
     actualc['AccountNum'] = actualc['AccountNum'].astype(str)
 
+## add a beginning of year entry for every budget item to actualb
+time0 = budget.copy()
+time0.columns = ['Account', 'Amount', 'AccountNum']
+time0['Date'] = startb
+time0 = time0[['Date', 'Account', 'Amount', 'AccountNum']]
+time0.Amount = 0
+actualb = pd.concat([time0, actualb], axis=0)  # rbind
+actualb.index = range(len(actualb))            # renumber dataframe
+## do the same for actualc
+time0['Date'] = startc
+actualc = pd.concat([time0, actualc], axis=0)  # rbind
+actualc.index = range(len(actualc))            # renumber dataframe
+
+# %%
+## apply linear adjustments to budget year
+
 
 ###############################################################################
 # %% [markdown]
@@ -101,11 +122,14 @@ else:
 
 # %%
 from tableit import tableit
-apply_linear_adjustments = False
-table, inconsistencies = tableit(map, budget, actualb, actualc, 
-                                 startb, endb, startc, endc,
-                                 apply_linear_adjustments)
+table  = tableit(map, budget, actualb, actualc, 
+                 startb, endb, startc, endc,
+                 apply_linear_adjustments)
 
+# %%
+from inconsistent import inconsistent
+inconsistencies = inconsistent(map, budget, actualb, actualc, 
+                               startb, endb, startc)
 
 # %% [markdown]
 # Create dataframe of table totals
@@ -131,6 +155,7 @@ table_totals_summary = table_totals_summary.loc[mask]
 table_totals_summary = table_totals_summary.pivot_table(index=['InOrOut', 'Category'], 
                                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
                                                         aggfunc=np.sum)
+table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD', 'Current Month']]
 
 '''
 table_totals_summary_print = table_totals_summary.copy()
@@ -156,6 +181,7 @@ print(table_totals_summary_print)
 filename = 'budget_out_' + str(endb) + '.xlsx'
 write_excel(filename, table, table_totals, table_totals_summary, actualb, actualc, inconsistencies)
 
+## actualc had the following incorrect in/out wash entries that need to be deleted
 
 
 ###############################################################################
@@ -182,13 +208,21 @@ if not os.path.exists(path):
 
 ## plot Income
 df = plot_inout.loc[plot_inout['InOrOut'] == 'In']
-plotit(df=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
-       title='Overall Income', filename=path + 'all_income.png')
+## following creates solid blue = 'Budget'
+##                   dotted green = 'Last year'
+##                   dashed red with "o" marker = 'YTD
+hue_order = ['Budget', 'Last year', 'YTD']
+markers = [',','o',',']    # unclear to me why this should not be [',',',','o']
+palette = ['b', 'g', 'r']
+plotit(x='Date', y='Amount', data=df, 
+       hue='Legend', hue_order=hue_order, style='Legend', markers=markers, palette=palette, 
+       errorbar=None, title='Overall Income', filename=path + 'all_income.png')
 
 ## plot Expense
 df = plot_inout.loc[plot_inout['InOrOut'] == 'Out']
-plotit(df=df, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
-       title='Overall Expenses', filename=path + 'all_expenses.png')
+plotit(x='Date', y='Amount', data=df, 
+       hue='Legend', hue_order=hue_order, style='Legend', markers=markers, palette=palette, 
+       errorbar=None, title='Overall Expenses', filename=path + 'all_expenses.png')
 
 
 ###############################################################################
@@ -277,8 +311,9 @@ for row in range(len(categories)):
         figsize = (6,4)
     else:
         figsize = (11,2)
-    plotit(df=df_plot, x='Date', y='Amount', hue='Legend', style='Legend', errorbar=None, 
-           title=inout + ": " + category, filename=path+filename+'_plot.png', figsize=figsize)
+    plotit(x='Date', y='Amount', data=df_plot, 
+       hue='Legend', hue_order=hue_order, style='Legend', markers=markers, palette=palette, 
+       errorbar=None, title=inout + ": " + category, filename=path+filename+'_plot.png', figsize=figsize)
 
     ## create table
     df = table.loc[(table.InOrOut == inout) & (table.Category == category),:].copy()
@@ -286,6 +321,7 @@ for row in range(len(categories)):
     df['Budget'] = df['Budget'].apply(dollars.to_str)
     df['YTD'] = df['YTD'].apply(dollars.to_str)
     df['Last YTD'] = df['Last YTD'].apply(dollars.to_str)
+    df['Current Month'] = df['Current Month'].apply(dollars.to_str)
     df = df.reset_index(drop=True)
     rows = len(df)
     if rows > 30:     # 19 seems to be the max for an image but fewer i
