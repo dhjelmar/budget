@@ -30,7 +30,7 @@ def tabletotals(table):
     table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'AccountNum', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
 
     ## move flag to end and drop AccountNum
-    table_totals = table_totals[['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'flag']]
+    table_totals = table_totals[['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'flag']]
 
     ## first highlight various parts
     ## add a flag for changes to category
