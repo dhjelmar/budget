@@ -24,6 +24,14 @@ def dfplot_inout(map, table, actualb, actualc_adj,
 
     # %%
 
+    ## create same dataframe for comparison year Income and Expenses
+    df, junk = mapit(actualc_adj, map)
+    df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
+    df.Amount = df.Amount.abs()
+    df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
+    df['Legend'] = 'Last year'
+    actualc_inout = df.copy()
+
     ## create same dataframe for budget year Income and Expenses
     df, junk = mapit(actualb, map)
     df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
@@ -31,14 +39,6 @@ def dfplot_inout(map, table, actualb, actualc_adj,
     df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
     df['Legend'] = 'YTD'
     actualb_inout = df.copy()
-
-    ## create same dataframe for comparison year Income and Expenses
-    df, junk = mapit(actualc_adj, map)
-    df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
-    df.Amount = df.Amount.abs()
-    df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
-    df['Legend'] = 'Prior year'
-    actualc_inout = df.copy()
 
     ## combine
     df_plots = pd.concat([budget_inout, actualb_inout, actualc_inout], axis=0)
