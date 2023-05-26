@@ -146,18 +146,28 @@ def pdf(path, fileout, endb, layout):
         wanted = '_' + str(i) + '_table'
         tablematch = list(filter(lambda x: wanted in x, filelist))
 
-        ## first get height of each plot and set of tables to makes sure they fit on page
+        ## first get height of each plot and at least 1st table fits on page
         plt_height = Image.open(path + plotfile).height
         plt_width = Image.open(path + plotfile).width
         # scale height to pdf units
         PLOTH = PLOTW * plt_height / plt_width
-        TABH = 0
-        for tablefile in tablematch:
-           # get image height and width in pixels
-           img_height = Image.open(path + tablefile).height
-           img_width  = Image.open(path + tablefile).width
-           # scale height to pdf units
-           TABH = TABH + TABW * img_height / img_width
+        
+        ## ## for loop adds up height of all tables, but some were too long for a single page so focusing just on at least one
+        ## TABH = 0
+        ## for tablefile in tablematch:
+        ##    # get image height and width in pixels
+        ##    img_height = Image.open(path + tablefile).height
+        ##    img_width  = Image.open(path + tablefile).width
+        ##    # scale height to pdf units
+        ##    TABH = TABH + TABW * img_height / img_width
+
+        ## figure out height of 1st table in pdf units
+        # get image height and width in pixels
+        img_height = Image.open(path + tablematch[0]).height
+        img_width  = Image.open(path + tablematch[0]).width
+        # scale height to pdf units
+        TABH = TABW * img_height / img_width
+
         if layout == 'COL':
             category_height = max(PLOTH, TABH)
         else:
