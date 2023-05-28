@@ -1,6 +1,5 @@
 def tableit(map, budget, actualb, actualc, 
-            startb, endb, startc, endc,
-            apply_linear_adjustments):
+            startb, endb, startc):
     '''
     '''
     import pandas as pd
@@ -52,12 +51,6 @@ def tableit(map, budget, actualb, actualc,
     # %%
     ## select columns to keep
     table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
-
-    # %% [markdown]
-    ## Add adjustment entries for linear YTD income
-    if apply_linear_adjustments == True:
-        filename = 'budget_linear.xlsx'
-        table = linearadj(filename, table, startb, startc, endb)
 
     # %%
     ## eliminate any rows in table where all entries are $0
