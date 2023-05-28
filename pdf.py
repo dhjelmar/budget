@@ -15,6 +15,7 @@ def pdf(path, fileout, endb, layout):
     from PIL import Image
     import dataframe_image as dfi   # had to install with pip
     import datetime as dt
+    from imagefit import imagefit
 
     
     #############################################################################
@@ -196,6 +197,11 @@ def pdf(path, fileout, endb, layout):
         ## Add corresponding table(s)
         for tablefile in tablematch:
             print('Adding', path + tablefile)
+
+            ## add new page if needed to fit image
+            current_y = imagefit(pdf, image=path+tablefile, wpdf=TABW, y=current_y, max_y=max_y, margin_top=MARGIN, extra=0, atleast=0)
+
+            ## add image
             pdf.image(path + tablefile, x=TABX, y=current_y, w=TABW)   
 
             ## problem: get_y() not incrementing after pdf.image()
