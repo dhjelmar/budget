@@ -58,7 +58,7 @@ startb, endb, startc, endc = set_dates()
 layout = 'ALT'
 
 ## set whether to apply linear adjustments for Covenant, Endowment, UP Fund, Tercentenary income
-apply_linear_adjustments = True
+apply_linear_adjustments = False
 
 
 ###############################################################################
@@ -93,6 +93,8 @@ else:
     actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
     actualb['AccountNum'] = actualb['AccountNum'].astype(str)
     actualc['AccountNum'] = actualc['AccountNum'].astype(str)
+    actualb = actualb.loc[(actualb.Date >= startb) & (actualb.Date <= endb)]
+    actualc = actualc.loc[(actualc.Date >= startc) & (actualc.Date <= endc)]
 
 ## add a beginning of year entry for every budget item to actualb
 time0 = budget.copy()
@@ -107,9 +109,13 @@ time0['Date'] = startc
 actualc = pd.concat([time0, actualc], axis=0)  # rbind
 actualc.index = range(len(actualc))            # renumber dataframe
 
-# %%
-## apply linear adjustments to budget year
 
+# %%
+### Add adjustment entries for linear YTD income in actualb and entire year in actualc
+if apply_linear_adjustments == True:
+    filename = 'budget_linear.xlsx'
+    actualb = linearadj(filename, actualb, startb, endb)
+    actualc = linearadj(filename, actualc, startc, endc)
 
 ###############################################################################
 # %% [markdown]
@@ -123,8 +129,7 @@ actualc.index = range(len(actualc))            # renumber dataframe
 # %%
 from tableit import tableit
 table  = tableit(map, budget, actualb, actualc, 
-                 startb, endb, startc, endc,
-                 apply_linear_adjustments)
+                 startb, endb, startc)
 
 # %%
 from inconsistent import inconsistent
@@ -178,8 +183,14 @@ print(table_totals_summary_print)
 
 # %%
 ## export tables to Excel
+
+## first map InOrOut and Category to actualb and actualc
+actualb_excel, actualb_excel_missing = mapit(actualb, map)   # add "InOrOut" and "Category" to actualb
+actualc_excel, actualc_excel_missing = mapit(actualc, map)
+
 filename = 'budget_out_' + str(endb) + '.xlsx'
-write_excel(filename, table, table_totals, table_totals_summary, actualb, actualc, inconsistencies)
+write_excel(filename, table, table_totals, table_totals_summary, 
+            actualb_excel, actualc_excel, inconsistencies)
 
 ## actualc had the following incorrect in/out wash entries that need to be deleted
 
@@ -215,13 +226,15 @@ hue_order = ['Budget', 'Last year', 'YTD']
 markers = [',','o',',']    # unclear to me why this should not be [',',',','o']
 palette = ['b', 'g', 'r']
 plotit(x='Date', y='Amount', data=df, 
-       hue='Legend', hue_order=hue_order, style='Legend', markers=markers, palette=palette, 
+       hue='Legend', hue_order=hue_order, legendloc='best',
+       style='Legend', markers=markers, palette=palette, 
        errorbar=None, title='Overall Income', filename=path + 'all_income.png')
 
 ## plot Expense
 df = plot_inout.loc[plot_inout['InOrOut'] == 'Out']
 plotit(x='Date', y='Amount', data=df, 
-       hue='Legend', hue_order=hue_order, style='Legend', markers=markers, palette=palette, 
+       hue='Legend', hue_order=hue_order, legendloc='best',
+       style='Legend', markers=markers, palette=palette, 
        errorbar=None, title='Overall Expenses', filename=path + 'all_expenses.png')
 
 
@@ -305,6 +318,10 @@ for row in range(len(categories)):
     ## rbind = pd.concat([df1, df2], axis=0)
     df_plot = pd.concat([budget_plot, actualb_plot, actualc_plot], axis=0)
 
+    ## if an expense category, plot as positive
+    if inout == 'Out':
+        df_plot.Amount = -1 * df_plot.Amount
+
     ## create plot
     filename = "category_{0:01d}".format(row)
     if layout == 'COL':
@@ -312,7 +329,8 @@ for row in range(len(categories)):
     else:
         figsize = (11,2)
     plotit(x='Date', y='Amount', data=df_plot, 
-       hue='Legend', hue_order=hue_order, style='Legend', markers=markers, palette=palette, 
+       hue='Legend', hue_order=hue_order, legendloc='best',
+       style='Legend', markers=markers, palette=palette, 
        errorbar=None, title=inout + ": " + category, filename=path+filename+'_plot.png', figsize=figsize)
 
     ## create table
