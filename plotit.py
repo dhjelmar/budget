@@ -1,4 +1,4 @@
-def plotit(x, y, data, hue=None, hue_order=None,
+def plotit(x, y, data, hue=None, hue_order=None, legendloc='best',
            style=None, markers=None, palette=None, errorbar=None, 
            title=None, filename=None, figsize=(6,4)):
     '''
@@ -22,6 +22,8 @@ def plotit(x, y, data, hue=None, hue_order=None,
     sns.lineplot(ax=ax, data=data, x=x, y=y, hue=hue, hue_order=hue_order,
                  style=style, markers=markers, palette=palette, errorbar=errorbar)\
        .set(title=title)
+    
+    plt.legend(loc=legendloc)
     
     if filename != None: { plt.savefig(filename) } # this write the figure to file filename
     plt.figure()                                  # this plots and closes the figure
