@@ -23,6 +23,7 @@ def set_dates():
         ## budget year to end of prior month
         startb = dt.date(dt.date.today().year, 1, 1)
         endb   = dt.date(dt.date.today().year, dt.date.today().month, 1) - dt.timedelta(days=1)
+        ## endb   = dt.date(2023,4,30)
         ## comparison year
         startc = dt.date(dt.date.today().year-1, 1, 1)
         endc   = dt.date(dt.date.today().year-1, 12, 31)
