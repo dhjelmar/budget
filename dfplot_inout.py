@@ -27,7 +27,10 @@ def dfplot_inout(map, table, actualb, actualc_adj,
     ## create same dataframe for comparison year Income and Expenses
     df, junk = mapit(actualc_adj, map)
     df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
-    df.Amount = df.Amount.abs()
+    ## df.Amount = df.Amount.abs()    ## this works, but following protects if an in is negative or out is positive
+    mask = df['InOrOut'] == 'Out', 'Amount'
+    df.loc[mask] = -1 * df.loc[mask]
+    df = df.sort_values('Date')
     df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
     df['Legend'] = 'Last year'
     actualc_inout = df.copy()
@@ -35,7 +38,10 @@ def dfplot_inout(map, table, actualb, actualc_adj,
     ## create same dataframe for budget year Income and Expenses
     df, junk = mapit(actualb, map)
     df = df.pivot_table(index=['InOrOut', 'Date'], values='Amount', aggfunc=np.sum).reset_index()
-    df.Amount = df.Amount.abs()
+    ## df.Amount = df.Amount.abs()
+    mask = df['InOrOut'] == 'Out', 'Amount'
+    df.loc[mask] = -1 * df.loc[mask]
+    df = df.sort_values('Date')
     df.Amount = df.groupby('InOrOut')['Amount'].cumsum()
     df['Legend'] = 'YTD'
     actualb_inout = df.copy()
