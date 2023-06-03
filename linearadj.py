@@ -4,15 +4,16 @@ def linearadj(filename, dfin, start, end):
     '''
     import pandas as pd
     import numpy as np
+    import datetime as dt
     from date_eom import date_eom
     from dateeom import dateeom
 
     # %%
     df = dfin.copy()
 
-    ## monthly cumsum for df and dfc then flatten
+    ## monthly sum for df and dfc then flatten
     df = dateeom(df)
-    df = df.pivot_table(index=['AccountNum', 'Account', 'Date'], values=['Amount'], aggfunc=np.sum) # cumsum
+    df = df.pivot_table(index=['AccountNum', 'Date'], values=['Amount'], aggfunc=np.sum) # monthly sum
     df = df.reset_index()    # flatten
 
     # %%
@@ -30,26 +31,35 @@ def linearadj(filename, dfin, start, end):
     ## expand linear to have an entry for each AccountNum for each month
     dicts = []
     for AccountNum in linear_list:
+        ## values[0] is needed in the following to extract the value from a series
+        amount_lin = linear.loc[linear.AccountNum == AccountNum, 'budget'].values[0] / 12
+        dfacct = df.loc[df.AccountNum == AccountNum].copy()
         for month in range(1,13):
             if month > end.month:
                 break           # exit for loop
             eom = date_eom(start.year, month)
-            ## values[0] is needed in the following to remove the value from a series
-            amount = linear.loc[linear.AccountNum == AccountNum, 'budget'].values[0] * month/12
+            dfmonth = dfacct.loc[(dfacct.Date >= dt.date(start.year, month, 1)) & (dfacct.Date <= eom)].copy()
+            ## month amount (set to 0 if failes to find anything in them month)
+            try:      # error catch
+                amount_month = dfmonth.loc[dfmonth.AccountNum == AccountNum, 'Amount'].values[0]
+            except:   # error catch
+                amount_month = 0
+            ## adjustment is differece between linearized plan and actual
+            adjustment = amount_lin - amount_month
             dicts.append(
                 {
                     'Date': eom,
-                    'Account': AccountNum + ' linear adjustment',
-                    'Amount': amount,
-                    'AccountNum': AccountNum
+                    'Account': AccountNum + 'a linear adjustment',
+                    'Amount': adjustment,
+                    'AccountNum': AccountNum + 'a'
                 }
             )
     linear2 = pd.DataFrame(dicts)
 
     # %%
     ## combine, sort, and renumber
-    df = pd.concat([df, linear2], axis=0)  # rbind
-    df = df.sort_values(by = ['AccountNum', 'Date'], ascending=True, na_position='last')  # sort
-    df.index = range(len(df))              # renumber dataframe
+    dfout = pd.concat([dfin, linear2], axis=0)  # rbind
+    dfout = dfout.sort_values(by = ['AccountNum', 'Date'], ascending=True, na_position='last')  # sort
+    dfout.index = range(len(dfout))              # renumber dataframe
 
-    return df
+    return dfout, linear2
