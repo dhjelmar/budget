@@ -10,7 +10,7 @@ def mapit(dataframe, map):
     df = dataframe.copy()
     df = pd.merge(df, map, how='left', on='AccountNum')
 
-    ## flag any line items from budget without Category assigned
+    ## flag any line items from dataframe that are not in the map (e.g., so no Category assigned)
     nan_values = df[df['Category'].isna()]
     if len(nan_values) != 0:
     #    print('')
@@ -24,7 +24,15 @@ def mapit(dataframe, map):
         df.loc[mask, 'GreenSheet'] = 'Xbudget'
         df.loc[mask, 'Committee'] = 'Xbudget'
         df.loc[mask, 'SourceOfFunds'] = 'Xbudget'
-        
+       
+        ## if Account is missing from map, replace it with Account from dataframe
+        if 'Account' in df:
+            df.loc[df['Account'].isna(), 'Account'] = df['AccountNum']
+        if 'Account_x' in df:
+            df.loc[df['Account_x'].isna(), 'Account_x'] = df['AccountNum']
+        if 'Account_y' in df:
+            df.loc[df['Account_y'].isna(), 'Account_y'] = df['AccountNum']
+
         ## set InOrOut based on dollar fields being positive or negative
         dollarfields = [x for x in df.columns if re.findall(r'Amount',x)]
         df['dollarsum'] = 0   # initialize new variable
