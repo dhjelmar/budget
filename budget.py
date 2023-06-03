@@ -248,7 +248,9 @@ path = 'figures/'
 #    ## clean out the directory if it does exist then make it
 #    rmdir(path)
 #    os.makedirs(path)
-rmdir(path)
+if os.path.exists(path):
+    rmdir(path)
+    
 os.makedirs(path)
 
 # %%
