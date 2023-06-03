@@ -22,7 +22,7 @@ def read_budget(yearb):
     budget['Account'] = budget['Account'].str.strip()    
 
     ## create another column with budget line item number only because database not consistent with descriptions
-    budget['AccountNum'] = budget.Account.str.extract('(\d+)')
+    budget['AccountNum'] = budget.Account.str.extract('(^\d+a|^\d+)')
 
     ## rename Account column
     budget.columns = ['Accounta', 'Budget', 'AccountNum']
