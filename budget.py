@@ -46,6 +46,8 @@ from tabletotals import tabletotals
 from plotit import plotit
 from dfplot_inout import dfplot_inout
 from rmdir import rmdir
+from category_plot import category_plot
+from category_table import category_table
 
 os.getcwd()
 
@@ -129,14 +131,6 @@ if apply_linear_adjustments == True:
     filename = 'budget_linear.xlsx'
     actualblin, linearb = linearadj(filename, actualb, startb, endb)
     actualclin, linearc = linearadj(filename, actualc, startc, endc)
-
-# %%
-## plotit('Date', 'Amount', linearc, hue='Account', style='Account')
-from plotit import plotcsv
-out0 = plotcsv('In', 'Covenant', df=actualclin)
-#out1 = plotcsv('In', 'Contributions', df=actualblin)
-#out2 = plotcsv('Out', 'Care & Support', df=actualblin)
-#out3 = plotcsv('Out', 'Care & Support', df=actualclin)
 
 
 # %%
@@ -239,6 +233,7 @@ for i in range(len(actualc)):
 plot_inout = dfplot_inout(map, table, actualb, actualc_adj, 
                           startb, endb, startc, endc)
 
+# %%
 ## create folder for figures if one does not already exist
 path = 'figures/'
 #if not os.path.exists(path):
@@ -262,18 +257,22 @@ df = plot_inout.loc[plot_inout['InOrOut'] == 'In']
 hue_order = ['Budget', 'Last year', 'YTD']
 markers = [',','o',',']    # unclear to me why this should not be [',',',','o']
 palette = ['b', 'g', 'r']
-plotit(x='Date', y='Amount', data=df, 
+plotit(x='Date', y='Amount', data=df, vline=endb,
        hue='Legend', hue_order=hue_order, legendloc='best',
        style='Legend', markers=markers, palette=palette, 
        errorbar=None, title='Overall Income', filename=path + 'all_income.png')
 
 ## plot Expense
 df = plot_inout.loc[plot_inout['InOrOut'] == 'Out']
-plotit(x='Date', y='Amount', data=df, 
+plotit(x='Date', y='Amount', data=df, vline=endb,
        hue='Legend', hue_order=hue_order, legendloc='best',
        style='Legend', markers=markers, palette=palette, 
        errorbar=None, title='Overall Expenses', filename=path + 'all_expenses.png')
 
+# %%
+## this clears plots from memory (desired)
+## will also keep plots from showing in interactive mode if in same jupyter cell
+plt.close('all')  
 
 ###############################################################################
 # %%
@@ -322,6 +321,13 @@ actualb, junk = mapit(actualb, map)
 actualc_adj, junk = mapit(actualc_adj, map)
 
 # %%
+if layout == 'COL':
+    figsize = (6,4)
+else:
+    ## figsize = (11,2)
+    figsize = (11,3)
+
+# %%
 for row in range(len(categories)):
     inout = categories.loc[row, 'InOrOut']
     category = categories.loc[row, 'Category']
@@ -329,80 +335,48 @@ for row in range(len(categories)):
     print(' ')
     print('Starting: ', inout, ' ', category)
 
-    ## seaborn plots and tables
-    ## create dataframe of budget category as a function of time
-    ## date    value legend
-    ## 1/1/22  $0   budget
-    ## 1/1/22  $44  budget
-    ## 1/1/22  $0   Last year
-    ## 1/1/22  $0   YTD
+    ## create plot and return dataframe used for plot
+    df_category_fig = category_plot(inout, category, budgettotals, 
+                                    startb, endb, actualb, actualc_adj, 
+                                    hue_order, markers, palette, 
+                                    path, fignum=row, figsize=figsize)
+    plt.close('all')
 
-    ## extract budget value
-    budget_value = budgettotals.loc[(inout, category), 'Budget']
-    budget_plot = pd.DataFrame({"Date":[startb, dt.date(endb.year, 12, 31)],
-                                "Amount": [0, budget_value],
-                                "Legend": ['Budget', 'Budget']})
+    ## create table to print after plot and associated dataframe
+    df_category_tab = category_table(inout, category, table, path, fignum=row)
 
-    ## extract actualb values
-    actualb_plot = actualb.loc[(actualb['InOrOut'] == inout) & (actualb['Category'] == category),:].copy()
-    actualb_plot = actualb_plot[['Date', 'Amount']]
-    actualb_plot = actualb_plot.sort_values('Date')
-    actualb_plot['Amount'] = actualb_plot['Amount'].cumsum()
-    actualb_plot['Legend'] = 'YTD'
+# %%
+'''
+from category_plot import category_plot
+from category_table import category_table
+print(categories)
+row = 1
+inout = categories.loc[row, 'InOrOut']
+category = categories.loc[row, 'Category']
+endit = dt.date(2023,6,1)
+df = category_plot(inout = inout, 
+                   category = category, 
+                   budgettotals = budgettotals, 
+                   startb = startb, 
+                   endb = endb, 
+                   actualb = actualb, 
+                   actualc_adj = actualc_adj, 
+                   hue_order = hue_order, 
+                   markers = markers, 
+                   palette = palette, 
+                   path = path, 
+                   fignum=row, 
+                   figsize = (6,4),
+                   xlim = (startb, endit),
+                   ylim = (0,200000))
+'''
 
-    ## extract actual values from comparison year
-    actualc_plot = actualc_adj.loc[(actualc_adj.InOrOut == inout) & (actualc_adj.Category == category),:].copy()
-    actualc_plot = actualc_plot[['Date', 'Amount']]
-    actualc_plot = actualc_plot.sort_values('Date')
-    actualc_plot['Amount'] = actualc_plot['Amount'].cumsum()
-    actualc_plot['Legend'] = 'Last year'
-
-    ## combine dataframes for plotting
-    ## rbind = pd.concat([df1, df2], axis=0)
-    df_plot = pd.concat([budget_plot, actualb_plot, actualc_plot], axis=0)
-
-    ## if an expense category, plot as positive
-    if inout == 'Out':
-        df_plot.Amount = -1 * df_plot.Amount
-
-    ## create plot
-    filename = "category_{0:01d}".format(row)
-    if layout == 'COL':
-        figsize = (6,4)
-    else:
-        figsize = (11,2)
-    plotit(x='Date', y='Amount', data=df_plot, 
-        hue='Legend', hue_order=hue_order, legendloc='best',
-        style='Legend', markers=markers, palette=palette, 
-        errorbar=None, title=inout + ": " + category, filename=path+filename+'_plot.png', figsize=figsize)
-
-    ## create table
-    df = table.loc[(table.InOrOut == inout) & (table.Category == category),:].copy()
-    ## if Account = NaN, then replace it with AccountNum
-    df.loc[df['Account'].isnull(), 'Account'] = df['AccountNum']
-    df = df.drop(['InOrOut', 'Category', 'AccountNum', 'flag'], axis=1)
-    df['Budget'] = df['Budget'].apply(dollars.to_str)
-    df['YTD'] = df['YTD'].apply(dollars.to_str)
-    df['Last YTD'] = df['Last YTD'].apply(dollars.to_str)
-    df['Current Month'] = df['Current Month'].apply(dollars.to_str)
-    df = df.reset_index(drop=True)
-    rows = len(df)
-    if rows > 30:     # 19 seems to be the max for an image but fewer i
-        df1 = df.iloc[range(1,15)]
-        df2 = df.iloc[range(15,30)]
-        df3 = df.iloc[range(30,rows)]
-        dfi.export(df1, path+filename+'_table1.png', dpi=300)
-        dfi.export(df2, path+filename+'_table2.png', dpi=300)
-        dfi.export(df3, path+filename+'_table3.png', dpi=300)
-    elif rows > 15:  # 19 seems to be the max for an image but fewer if some need double lines
-        df1 = df.iloc[range(1,15)]
-        df2 = df.iloc[range(15,rows)]
-        dfi.export(df1, path+filename+'_table1.png', dpi=300)
-        dfi.export(df2, path+filename+'_table2.png', dpi=300)
-    else:
-        dfi.export(df, path+filename+'_table.png', dpi=300)
-
-
+# %%
+'''
+from plotit import plotcsv
+plotb = plotcsv('In', 'Contributions - pledge', 'actualb.csv')
+plotc = plotcsv('In', 'Contributions - pledge', 'actualc.csv')
+'''
 ###############################################################################
 # %% [markdown]
 ## Create PDF
