@@ -11,7 +11,7 @@ def read_map():
     
     ## only keep needed columns
     map = map[['InOrOut', 'Category', 'GreenSheet', 'Committee', 'SourceOfFunds', 'Account', 'AccountNum']]
-    print(map.head())
+    ## print(map.head())
 
     # check for non-unique account numbers
     df = map.AccountNum
