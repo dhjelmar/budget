@@ -1,24 +1,36 @@
-# budget
+# Budget Vs. Actual Spending
 
-# debugging
-Continue / Pause (F5)
-Continue: Resume normal program/script execution (up to the next breakpoint).
-Pause: Inspect code executing at the current line and debug line-by-line.
+## Description
++ Reads budget from Excel
++ Reads actual spending for budget and comparison years from ICONCMO API
++ Creates
+    + Table and figures to compare at high level
+    + Table and figures to compare for line items
 
-Step Over (F10)	
-Execute the next method as a single command without inspecting or following its component steps.
 
-Step Into (F11)
-Enter the next method to follow its execution line-by-line.
+## Input files
++ budget_2023.xlsx = budget file in Excel format with the following required columns:
+  + InOrOut = 'In' for income; 'Out' for expenses
+  + Category = user defined categorization for each Account
+  + SourceOfFunds = text field generally used to identify
+                    Account as 'Undesignated', 'Covenant Fund', etc.
+  + Account       = 4-digit number followed by name of account
+                    Account needs to be the same in Icon
 
-Step Out (Shift+F11)
-When inside a method or subroutine, return to the earlier execution context by completing remaining lines of the current method as though it were a single command.
 
-Restart (Ctrl+Shift+F5)
-Terminate the current program execution and start debugging again using the current run configuration.
++ budget_linear.xlsx = Excel file with planned budget for each investment fund with the following required columns:
+  + AccountNum = 4 digit number matching budget file
+  + Account_linear
+  + budgetyyyy = budget value for acount where yyyy is year (e.g., budget2023)
+                 need to have at least 2 of these columns for budget and comparison years
 
-Stop (Shift+F5)	
-Terminate the current program execution.
 
-Run (Ctrl+F5)
-Start Without Debugging
++ map.xlsx = Excel file identifying following that correspons to
+             each AccountNum in the budget file with the following required columns:
+  + InOrOut = 'In' for income; 'Out' for expenses
+  + Category = user defined categorization for each Account
+  + SourceOfFunds = text field generally used to identify
+                    Account as 'Undesignated', 'Covenant Fund', etc.
+
+
++ frc_orig.jpg = FRC logo used on 1st PDF page

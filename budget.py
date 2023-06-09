@@ -1,19 +1,5 @@
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
-# ## Budget Vs. Actual Spending
-
-# + User input for budget Excel file with following columns:
-#   + xxxxxx
-#   + xxxxxx
-#   + xxxxxx
-#   + xxxxxx
-# + User input for budget year and comparison year
-# + Reads budget from Excel
-# + Reads actual spending for budget and comparison years from ICONCMO API
-# + Creates
-#   + Table and figures to compare at high level
-#   + Table and figures to compare for line items
-
-
+# # Budget Vs. Actual Spending
 
 # %% 
 ## import packages
@@ -31,23 +17,24 @@ import jellyfish
 import os
 
 ## import my functions
-from set_dates import set_dates
-from read_map import read_map
-from read_budget import read_budget
-from mapit import mapit
-from icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
-from linearadj import linearadj
-import dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
-from highlight import highlight
-from write_excel import write_excel
-from dupacct import dupacct
-from dateeom import dateeom
-from tabletotals import tabletotals
-from plotit import plotit
-from dfplot_inout import dfplot_inout
-from rmdir import rmdir
-from category_plot import category_plot
-from category_table import category_table
+from modules.set_dates import set_dates
+from modules.read_map import read_map
+from modules.read_budget import read_budget
+from modules.linearadj import linearadj
+from modules.mapit import mapit
+from modules.icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
+from modules.linearadj import linearadj
+import modules.dollars as dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
+from modules.highlight import highlight
+from modules.write_excel import write_excel
+from modules.dupacct import dupacct
+from modules.dateeom import dateeom
+from modules.tabletotals import tabletotals
+from modules.plotit import plotit
+from modules.dfplot_inout import dfplot_inout
+from modules.rmdir import rmdir
+from modules.category_plot import category_plot
+from modules.category_table import category_table
 
 os.getcwd()
 
@@ -96,13 +83,11 @@ budget, budget_duplicates = read_budget(startb.year)
 ## Obtain ICON entries for budget year and comparison year
 if icon_refresh == True:
     actualb, actualc = icon(startb, endb, startc, endc)
-    actualb.to_csv('actualb.csv', index=False)
-    actualc.to_csv('actualc.csv', index=False)
+    actualb.to_csv('temp_actualb.csv', index=False)
+    actualc.to_csv('temp_actualc.csv', index=False)
 else:
-    #actualb = pd.read_csv('actualb_test.csv')
-    #actualc = pd.read_csv('actualc_test.csv')
-    actualb = pd.read_csv('actualb.csv')
-    actualc = pd.read_csv('actualc.csv')
+    actualb = pd.read_csv('temp_actualb.csv')
+    actualc = pd.read_csv('temp_actualc.csv')
     actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
     actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
     actualb['AccountNum'] = actualb['AccountNum'].astype(str)
@@ -126,9 +111,8 @@ actualc.index = range(len(actualc))            # renumber dataframe
 
 # %%
 ### Add adjustment entries for linear YTD income in actualb and entire year in actualc
-from linearadj import linearadj
 if apply_linear_adjustments == True:
-    filename = 'budget_linear.xlsx'
+    filename = 'input_files/budget_linear.xlsx'
     actualblin, linearb = linearadj(filename, actualb, startb, endb)
     actualclin, linearc = linearadj(filename, actualc, startc, endc)
 
@@ -147,12 +131,12 @@ actualc = actualclin
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 
 # %%
-from tableit import tableit
+from modules.tableit import tableit
 table  = tableit(map, budget, actualb, actualc, 
                  startb, endb, startc)
 
 # %%
-from inconsistent import inconsistent
+from modules.inconsistent import inconsistent
 inconsistencies = inconsistent(map, budget, actualb, actualc, 
                                startb, endb, startc)
 
@@ -382,7 +366,7 @@ plotc = plotcsv('In', 'Contributions - pledge', 'actualc.csv')
 ## Create PDF
 
 # %%
-from pdf import pdf
+from modules.pdf import pdf
 fileout = 'budget_report_' + str(endb) + '.pdf'
 pdf(path, fileout, endb, layout)
 
