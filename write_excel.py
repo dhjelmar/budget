@@ -38,8 +38,8 @@ def write_excel(filename, table, table_totals, table_totals_summary, actualb, ac
         ## table_totals_summary.style.set_table_styles([{'selector': '.row_heading', 'props': [('text-align', 'left')]}])\
         ##                     .to_excel(writer, sheet_name='budget_totals_summary')   # need index since multiindex
     with pd.ExcelWriter(filename,mode='a') as writer:  
-        actualb.to_excel(writer, sheet_name='actuals budget year')
+        actualb.to_excel(writer, sheet_name='actuals budget year', index=False)
     with pd.ExcelWriter(filename,mode='a') as writer:  
-        actualc.to_excel(writer, sheet_name='actuals comparison year')
+        actualc.to_excel(writer, sheet_name='actuals comparison year', index=False)
     with pd.ExcelWriter(filename,mode='a') as writer:  
-        inconsistencies.to_excel(writer, sheet_name='inconsistencies')
+        inconsistencies.to_excel(writer, sheet_name='inconsistencies', index=False)
