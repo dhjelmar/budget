@@ -115,11 +115,8 @@ if apply_linear_adjustments == True:
     filename = 'input_files/budget_linear.xlsx'
     actualblin, linearb = linearadj(filename, actualb, startb, endb)
     actualclin, linearc = linearadj(filename, actualc, startc, endc)
-
-
-# %%
-actualb = actualblin
-actualc = actualclin
+    actualb = actualblin.copy()
+    actualc = actualclin.copy()
 
 ###############################################################################
 # %% [markdown]
@@ -192,7 +189,7 @@ print(table_totals_summary_print)
 actualb_excel, actualb_excel_missing = mapit(actualb, map)   # add "InOrOut" and "Category" to actualb
 actualc_excel, actualc_excel_missing = mapit(actualc, map)
 
-filename = 'budget_out_' + str(endb) + '.xlsx'
+filename = 'budget_report_' + str(endb) + '.xlsx'
 write_excel(filename, table, table_totals, table_totals_summary, 
             actualb_excel, actualc_excel, inconsistencies)
 
@@ -239,7 +236,7 @@ df = plot_inout.loc[plot_inout['InOrOut'] == 'In']
 ##                   dotted green = 'Last year'
 ##                   dashed red with "o" marker = 'YTD
 hue_order = ['Budget', 'Last year', 'YTD']
-markers = [',','o',',']    # unclear to me why this should not be [',',',','o']
+markers = [',','o','v']    # unclear to me why this should not be [',',',','o']
 palette = ['b', 'g', 'r']
 plotit(x='Date', y='Amount', data=df, vline=endb,
        hue='Legend', hue_order=hue_order, legendloc='best',
@@ -331,8 +328,8 @@ for row in range(len(categories)):
 
 # %%
 '''
-from category_plot import category_plot
-from category_table import category_table
+from modules.category_plot import category_plot
+from modules.category_table import category_table
 print(categories)
 row = 1
 inout = categories.loc[row, 'InOrOut']
@@ -350,7 +347,7 @@ df = category_plot(inout = inout,
                    palette = palette, 
                    path = path, 
                    fignum=row, 
-                   figsize = (6,4),
+                   figsize = (11,3),
                    xlim = (startb, endit),
                    ylim = (0,200000))
 '''
