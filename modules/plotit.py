@@ -7,7 +7,11 @@ def plotit(x, y, data, vline, hue=None, hue_order=None, legendloc='best',
     markers = symbols to use on lines
               good choices: [',', '.', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
               https://matplotlib.org/3.1.0/api/markers_api.html
+
+    References
+    ----------
     https://seaborn.pydata.org/generated/seaborn.lineplot.html
+    https://realpython.com/python-matplotlib-guide/
     '''
     import pandas as pd
     import seaborn as sns
