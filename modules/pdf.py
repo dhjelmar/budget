@@ -145,7 +145,7 @@ def pdf(path, fileout, endb, layout):
         wanted = '_' + str(i) + '_table'
         tablematch = list(filter(lambda x: wanted in x, filelist))
 
-        ## first get height of each plot and at least 1st table fits on page
+        ## first get height of each plot and make sure at least 1st table fits on page
         plt_height = Image.open(path + plotfile).height
         plt_width = Image.open(path + plotfile).width
         # scale height to pdf units
