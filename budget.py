@@ -324,7 +324,8 @@ for row in range(len(categories)):
     plt.close('all')
 
     ## create table to print after plot and associated dataframe
-    df_category_tab = category_table(inout, category, table, path, fignum=row)
+    ## only needed if later using pdf()
+    ## df_category_tab = category_table(inout, category, table, path, fignum=row)
 
 # %%
 '''
