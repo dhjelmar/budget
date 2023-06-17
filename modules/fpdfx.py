@@ -1,28 +1,67 @@
-def df2pdf(pdf, df):
+def df2pdf(pdf, df, cellw=None):
     '''
     ## https://www.justintodata.com/generate-reports-with-python/
     '''
     # A cell is a rectangular area, possibly framed, which contains some text
     # Set the width and height of cell
-    table_cell_width = 25
+    ## table_cell_width = 25
     table_cell_height = 6
+
+    ## set fill color for table cell if fill=True
+    pdf.set_fill_color(240,240,240)
+
     # Select a font as Arial, bold, 8
     pdf.set_font('Arial', 'B', 8)
-    
+
+    # replace any special characters in column names with underscore
+    df.columns = df.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
+
     # Loop over to print column names
     cols = df.columns
+    
+    ## set column widths for table
+    table_cell_width = []   # blank list
+    i = 0
     for col in cols:
-        pdf.cell(table_cell_width, table_cell_height, col, align='C', border=1)
+        if cellw == None:
+            ## find maximum width of column name or any value in col
+            width = 2.2 * max(len(col), df[col].str.len().max())
+        else:
+            width = cellw[i]
+        ## save width in a list (will need it later)
+        table_cell_width.append(width)
+        ## set cell width to that width
+        pdf.cell(width, table_cell_height, col, align='C', border=1)
+        i = i + 1
+    ## convert list to array
+    ## table_cell_width = np.array(table_cell_width)
+    ## no need for above because can just access list
+
     # Line break
     pdf.ln(table_cell_height)
     # Select a font as Arial, regular, 10
     pdf.set_font('Arial', '', 10)
+
     # Loop over to print each data in the table
+    irow = 0
     for row in df.itertuples():
+        shade = (irow + 1) % 2   # remainder operator
+        icol = 0
+        if shade:
+            shadeit = True
+        else:
+            shadeit = False
         for col in cols:
             value = str(getattr(row, col))
-            pdf.cell(table_cell_width, table_cell_height, value, align='C', border=1)
+            ## if cell contains $, right justify
+            money = '$' in str(value)
+            if money:
+                pdf.cell(table_cell_width[icol], table_cell_height, value, align='R', border=1, fill=shadeit)
+            else:
+                pdf.cell(table_cell_width[icol], table_cell_height, value, align='L', border=1, fill=shadeit)
+            icol = icol + 1
         pdf.ln(table_cell_height)
+        irow = irow + 1
 
 
 
