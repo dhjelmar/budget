@@ -1,2 +1,4 @@
 figures/
+__pycache__/
+modules/__pycache__/
 supporting_files/
