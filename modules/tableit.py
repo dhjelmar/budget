@@ -59,6 +59,18 @@ def tableit(map, budget, actualb, actualc,
     table.index = range(len(table))
 
     # %%
+    '''
+    ## add column for YTD percent
+    table['YTD%'] = table['YTD'] / table['Budget'] * 100
+    ## replace nan, inf, and -inf with 999
+    table['YTD%'] = table['YTD%'].replace([np.nan, np.inf, -np.inf], 999, inplace=True)
+    ## round to integer
+    table['YTD%'] = table['YTD%'].round(0).astype(int)
+    ## replace 999 with inf
+    table['YTD%'] = table['YTD%'].replace([999], np.inf, inplace=True)
+    '''
+
+    # %%
     ## sort table and add a flag for changes to category
     ##table = table.sort_values(by = ['Account', 'Category', 'InOrOut'], ascending=True, na_position='last')
     table = table.sort_values(by = ['InOrOut', 'Category', 'Account'], ascending=True, na_position='last')
