@@ -1,3 +1,7 @@
+#!/c/Users/dlhje/anaconda3/envs/py39/python
+# remember to also make the script executable: chmod 755 budget.py
+# execute script with: ./budget.py
+
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
 # # Budget Vs. Actual Spending
 
@@ -216,7 +220,7 @@ plot_inout = dfplot_inout(map, table, actualb, actualc_adj,
 
 # %%
 ## create folder for figures if one does not already exist
-path = 'figures/'
+path = 'tmp_figures/'
 #if not os.path.exists(path):
 #    ## make the directory if it does not exist
 #    os.makedirs(path)
@@ -324,7 +328,7 @@ for row in range(len(categories)):
     plt.close('all')
 
     ## create table to print after plot and associated dataframe
-    ## only needed if later using pdf()
+    ## only needed if later using pdf() rather than pdf_txt()
     ## df_category_tab = category_table(inout, category, table, path, fignum=row)
 
 # %%
