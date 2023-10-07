@@ -13,18 +13,41 @@ def category_plot(inout, category, budgettotals,
                                 "Legend": ['Budget', 'Budget']})
 
     ## extract actualb values
-    actualb_plot = actualb.loc[(actualb['InOrOut'] == inout) & (actualb['Category'] == category),:].copy()
+    ## It would be better to not have to use inout but the combination is used.
+    ## For the most part this works fine but it can fail with Xbudget category
+    ## because that can be in or out
+    if category == 'Xbudget':
+        actualb_plot = actualb.loc[actualb['Category'] == category,:].copy()
+    else:
+        actualb_plot = actualb.loc[(actualb['InOrOut'] == inout) & (actualb['Category'] == category),:].copy()
     actualb_plot = actualb_plot[['Date', 'Amount']]
-    actualb_plot = actualb_plot.sort_values('Date')
-    actualb_plot['Amount'] = actualb_plot['Amount'].cumsum()
-    actualb_plot['Legend'] = 'YTD'
+    if len(actualb_plot) > 0:
+        actualb_plot = actualb_plot.sort_values('Date')
+        actualb_plot['Amount'] = actualb_plot['Amount'].cumsum()
+        actualb_plot['Legend'] = 'YTD'
+    else:
+        ## create dataframe from list
+        data = {'Date'  : [startb],
+                'Amount': [0],
+                'Legend': ['YTD']}
+        actualb_plot = pd.DataFrame(data)
 
     ## extract actual values from comparison year
-    actualc_plot = actualc_adj.loc[(actualc_adj.InOrOut == inout) & (actualc_adj.Category == category),:].copy()
+    if category == 'Xbudget':
+        actualc_plot = actualc_adj.loc[actualc_adj.Category == category,:].copy()
+    else:
+        actualc_plot = actualc_adj.loc[(actualc_adj.InOrOut == inout) & (actualc_adj.Category == category),:].copy()
     actualc_plot = actualc_plot[['Date', 'Amount']]
-    actualc_plot = actualc_plot.sort_values('Date')
-    actualc_plot['Amount'] = actualc_plot['Amount'].cumsum()
-    actualc_plot['Legend'] = 'Last year'
+    if len(actualc_plot) > 0:
+        actualc_plot = actualc_plot.sort_values('Date')
+        actualc_plot['Amount'] = actualc_plot['Amount'].cumsum()
+        actualc_plot['Legend'] = 'Last year'
+    else:
+        ## create dataframe from list
+        data = {'Date'  : [startb],
+                'Amount': [0],
+                'Legend': ['Last year']}
+        actualc_plot = pd.DataFrame(data)
 
     ## combine dataframes for plotting
     ## rbind = pd.concat([df1, df2], axis=0)
