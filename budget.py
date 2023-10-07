@@ -2,6 +2,11 @@
 # remember to also make the script executable: chmod 755 budget.py
 # execute script with: ./budget.py
 
+## to execute file, need to:
+##   1. Open VSCode
+##   2. File / Open Folder / F:\Documents\01_Dave\Programs\GitHub_home\budget
+##   3. Select "Run Below" in the cell below these instructions
+
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
 # # Budget Vs. Actual Spending
 
@@ -60,7 +65,7 @@ apply_linear_adjustments = True
 print('apply_linear_adjustments = ', apply_linear_adjustments)
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 print('icon_refresh = ', icon_refresh)
 
 ###############################################################################
@@ -314,6 +319,7 @@ else:
 
 # %%
 for row in range(len(categories)):
+    ## row = 5
     inout = categories.loc[row, 'InOrOut']
     category = categories.loc[row, 'Category']
 
