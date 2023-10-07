@@ -39,9 +39,9 @@
 
 
 ## Output
-+ budget_report_yyyy-mm-dd.pdf  = Excel file with plots and tables of performance to budget
++ budget_report_yyyy-mm-dd.pdf  = Excel file with plots and tables of performance to budget (e.g., [budget_report_2023-09-30.pdf](budget_report_2023-09-30.pdf))
 
-+ budget_report_yyyy-mm-dd.xlsx = Excel file with tables of performance to budget; includes every Account entry for budget year and comparison year
++ budget_report_yyyy-mm-dd.xlsx = Excel file with tables of performance to budget; includes every Account entry for budget year and comparison year (e.g., [budget_report_2023-09-30.xlsx](budget_report_2023-09-30.pdf))
 
 
 ## Environment
