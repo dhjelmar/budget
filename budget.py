@@ -3,8 +3,11 @@
 # execute script with: ./budget.py
 
 ## to execute file, need to:
-##   1. Open VSCode
-##   2. File / Open Folder / F:\Documents\01_Dave\Programs\GitHub_home\budget
+##   1. Open Project using one of the following
+##      a. Open VSCode
+##         Select File / Open Folder / F:\Documents\01_Dave\Programs\GitHub_home\budget
+##      b. Double click project folder in File Explorer
+##         (double clicking budget.py in File Explorer does not open Project correctly)
 ##   3. Select "Run Below" in the cell below these instructions
 
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
@@ -65,7 +68,7 @@ apply_linear_adjustments = True
 print('apply_linear_adjustments = ', apply_linear_adjustments)
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 print('icon_refresh = ', icon_refresh)
 
 ###############################################################################
