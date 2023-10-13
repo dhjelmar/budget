@@ -18,12 +18,13 @@
                     Account needs to be the same in Icon
 
 
-+ budget_linear.xlsx = Excel file with planned budget for each investment fund with the following required columns:
++ budget_linear.xlsx = Excel file with planned budget for each investment fund. The purpose of listing these accounts is to assess the budget against a linear withdrawal from those accounts regardless of whether that is what is taken or not. The "Linear Adjustment" category in the output PDF will reflect deviations from that withdrawal plan. The file has the following required columns:
   + AccountNum = 4 digit number matching budget file
   + Account_linear = 4-digit number followed by name of account;
                      Account number needs to match Account number in budget_yyyy.xlsx
   + budgetyyyy = budget value for acount where yyyy is year (e.g., budget2023)
                  need to have at least 2 of these columns for budget and comparison years
+		 (budget year could come from the current budget year file with alternate coding)
 
 
 + frc_orig.jpg = FRC logo used on 1st PDF page
