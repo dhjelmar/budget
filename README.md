@@ -52,7 +52,7 @@
   + conda env create -f environment_budget.yml
 
 
-## Executable
+## Executable (not working yet)
 + Created in Git Bash using:
   + Activate environment: conda activate py39
   + deterine path to python executable: which python
