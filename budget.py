@@ -37,6 +37,7 @@ from modules.mapit import mapit
 from modules.icon import icon     # gives access to all function icon() in icon.py; e.g., icon(startb, endb, startc, endc)
 from modules.linearadj import linearadj
 import modules.dollars as dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
+from modules.percent import percent
 from modules.highlight import highlight
 from modules.write_excel import write_excel
 from modules.dupacct import dupacct
@@ -173,8 +174,14 @@ table_totals_summary = table_totals_summary.loc[mask]
 table_totals_summary = table_totals_summary.pivot_table(index=['InOrOut', 'Category'], 
                                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
                                                         aggfunc=np.sum)
-table_totals_summary = table_totals_summary[['Budget', 'YTD', 'Last YTD', 'Current Month']]
+# add percent of budget column
+table_totals_summary['YTD%'] = table_totals_summary['YTD'] / table_totals_summary['Budget']
+print(table_totals_summary.head())
 
+# rearrange table
+table_totals_summary = table_totals_summary[['Budget', 'YTD%', 'YTD', 'Last YTD', 'Current Month']]
+table_totals_summary.loc[('_Total', '_Total'),'YTD%'] = 'NA'
+# print(df.loc[('_Total', '_Total'),'YTD%'])
 '''
 table_totals_summary_print = table_totals_summary.copy()
 table_totals_summary_print['Budget'] = table_totals_summary_print['Budget'].apply(dollars.to_str)
@@ -280,9 +287,17 @@ plt.close('all')
 ## Income / Expense Summary Table
 df = table_totals_summary.copy()
 df['Budget'] = df['Budget'].apply(dollars.to_str)
+#df.style.format({
+#    # 'var1%': '{:,.2f}'.format,
+#    # 'var2': '{:,.2f}'.format,
+#    'YTD%': '{:,.0%}'.format,
+#})
+# df.style.format({'YTD%': "{:.0%}"})
+df['YTD%'] = df['YTD%'].apply(percent)
 df['YTD'] = df['YTD'].apply(dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(dollars.to_str)
+print(df)
 ## https://towardsdatascience.com/make-your-tables-look-glorious-2a5ddbfcc0e5
 dfi.export(df, path+'all_table.png', dpi=300)    ## bug does not allow large enough table
 
