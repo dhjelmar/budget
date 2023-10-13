@@ -18,11 +18,13 @@ def pdf_txt(path, fileout, endb, layout, categories, table):
     ## from modules.imagefit import imagefit
     import dataframe_image as dfi    # had to install with pip
     import modules.dollars as dollars
-
+    from modules.percent import percent
     
     #############################################################################
     # %%
     # Global Variables
+    ytd_percent = (endb-dt.date(endb.year-1, 12, 31))/dt.timedelta(365,0,0,0)
+    ytd_percent = percent(ytd_percent, decimals=0)
     TITLE = "FRCS Budget Report: " + str(endb)
     WIDTH = 210
     MARGIN = 12
@@ -83,7 +85,9 @@ def pdf_txt(path, fileout, endb, layout, categories, table):
 
     ## add today
     today = str(dt.date.today())                   # YYYY-MM-DD
-    fpdfx.write2pdf(pdf, 'Report date: '+today, family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
+    fpdfx.write2pdf(pdf, 
+                    ytd_percent + ' through the year; Report generated on ' + today,
+                    family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
                     r=128, g=128, b=128)
 
     ## get current y location
