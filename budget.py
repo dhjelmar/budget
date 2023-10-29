@@ -69,21 +69,48 @@ apply_linear_adjustments = True
 print('apply_linear_adjustments = ', apply_linear_adjustments)
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 print('icon_refresh = ', icon_refresh)
 
 ###############################################################################
 # %% [markdown]
-## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME: map
+## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME THEN CREATE OBJECTS: map, mapo[0] through mapo[nrow-1]
+
+## May be better to keep map as a dataframe and use to modify account objects
 
 # %%
 map, map_duplicates = read_map()
+
+#%%
+class mapclass():
+    def __init__(self, InOrOut, SourceOfFunds, Account, AccountNum):
+        self.InOrOut = InOrOut
+        self.SourceOfFunds = SourceOfFunds
+        self.Account = Account
+        self.AccountNum = AccountNum
+
+mapo = [mapclass(a.InOrOut, a.SourceOfFunds, a.Account, a.AccountNum) for a in map.itertuples()]
+
+print(vars(mapo[0]))
+print(mapo[0].SourceOfFunds)
 
 
 ###############################################################################
 # %% [markdown]
 ## READ BUDGET DATA INTO DATAFRAME: budget
 budget, budget_duplicates = read_budget(startb.year)
+class budget_class():
+    def __init__(self, AccountNum, Accounta, Budget):
+        self.AccountNum = AccountNum
+        self.Account_Budget = Accounta
+        self.Budget = Budget
+
+budgeto = [budget_class(a.AccountNum, a.Accounta, a.Budget) for a in budget.itertuples()]
+
+print(vars(budgeto[0]))
+print(budgeto[0].AccountNum)
+print(budgeto[0].Account_Budget)
+print(budgeto[0].Budget)
 
 
 ## # %% [markdown]
@@ -120,6 +147,22 @@ actualb.index = range(len(actualb))            # renumber dataframe
 time0['Date'] = startc
 actualc = pd.concat([time0, actualc], axis=0)  # rbind
 actualc.index = range(len(actualc))            # renumber dataframe
+
+
+#%%
+## Create actualbo and actualco objects
+class account_class():
+    def __init__(self, Date, AccountNum, Account, Amount):
+        self.AccountNum = AccountNum    # string (or maybe number)
+        self.Account = xxxxxx           # string with account name mapped from map.xlsx file
+        self.Account_ICON = Account     # string with account name as entered in ICON
+        self.Date = Date                # vector of dates
+        self.Amount = Amount            # vector of amounts
+        self.Budget_budget_year = xxxx  # number
+        self.Budget_comparison_year = xxxx # number
+
+
+actualbo = [account_class(a.Date, a.AccountNum, a.Account, a.Amount) for a in actualb.itertuples()]
 
 
 # %%
