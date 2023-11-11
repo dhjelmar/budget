@@ -1,18 +1,14 @@
-def convert(yearb, columns=['Account', 'Budget_2024', 'Source_of_Funds', 'Recurring', 'Budget_2023', 'Current_Balance', 'Difference', 'Comments'],
+#%%
+def convert(file='input_files/budget_2024_office.xlsx', 
+            columns=['Account', 'Budget_2024', 'Source_of_Funds', 'Recurring', 'Budget_2023', 'Current_Balance', 'Difference', 'Comments'],
             dollar_columns=[2,5]):
     ## READ OFFICE VERSION OF BUDGET DATA INTO DATAFRAME: budget
 
     import pandas as pd
     import numpy as np
 
-    budgetfile = 'input_files/budget_' + str(yearb) + '_office.xlsx'
-    #alternate = input('Press enter to use following for budget: ' + budgetfile)
-    #if alternate != "":
-    #    budgetfile = alternate
-    print('budget file     :', budgetfile)
-    
     ## read budget file and fix column names
-    df = pd.read_excel(budgetfile)
+    df = pd.read_excel(file)
     if (columns == None):
         ## use column names from Excel but replace special characters with "_"
         df.columns = df.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
@@ -39,5 +35,9 @@ def convert(yearb, columns=['Account', 'Budget_2024', 'Source_of_Funds', 'Recurr
 
     return df
 
-budget = convert(2024)
+#%%
+budget = convert(file='input_files/budget_2024_office.xlsx', 
+                 columns=['Account', 'Budget_2024', 'Source_of_Funds', 'Recurring', 'Budget_2023', 'Current_Balance', 'Difference', 'Comments'],
+                 dollar_columns=[2,5])
 budget[['InOrOut', 'AccountNum', 'Account', 'Budget_2023', 'Budget_2024']]
+# %%
