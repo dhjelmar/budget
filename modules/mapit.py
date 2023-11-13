@@ -10,6 +10,10 @@ def mapit(dataframe, map):
     df = dataframe.copy()
     df = pd.merge(df, map, how='left', on='AccountNum')
 
+    ## create InOrOut column if it does not exist
+    ## because it was in both df and map so merge created _x and _y copies
+    df['InOrOut'] = df.get('InOrOut', df['InOrOut_y']) 
+
     ## flag any line items from dataframe that are not in the map (e.g., so no Category assigned)
     nan_values = df[df['Category'].isna()]
     if len(nan_values) != 0:
