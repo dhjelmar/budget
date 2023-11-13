@@ -2,6 +2,8 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime as dt
+from modules.read_map import read_map
+from modules.mapit import mapit
 
 def convert(file='input_files/budget_2024_office.xlsx',
             col_rename=['Account', 'Budget', 'Source_of_Funds', 'Recurring', 'Budget_2023', 'Current_Balance', 'Difference', 'Comments'],
@@ -32,7 +34,8 @@ def convert(file='input_files/budget_2024_office.xlsx',
     df['Year'] = year
     ## df['Date'] = dt.today().strftime('%Y-%m-%d')
     today = dt.today().strftime('%m/%d/%y')
-    df['Date'] = dt.strptime(today, '%m/%d/%y')
+    ## df['Date'] = dt.strptime(today, '%m/%d/%y')
+    df['Date'] = 'Budget ' + str(year) + ' (' + today + ')'
 
     ## move InOrOut and AccountNum to front of dataframe
     df = df[col_out]
@@ -46,9 +49,29 @@ budget = convert()
 ## read prior years
 df = pd.read_excel('input_files/budget_all.xlsx')
 
-## combine into single dataframe and write new Excel file
+## combine into single dataframe
 df = pd.concat([df, budget], axis=0)
-df.to_excel('convert_out.xlsx', index=False)
+
+#%% 
+## map to categories
+map, map_duplicates = read_map()
+
+## first need to convert AccountNum to string for merge operation
+df['AccountNum'] = df['AccountNum'].apply(str)
+dfmapped, missing = mapit(df, map)
+
+#%%
+dfmapped.columns = ['Year', 'Date', 'InOrOut_x', 'AccountNum', 'Account_x', 'Budget',
+                    'InOrOut_y', 'Category', 'SourceOfFunds', 'Account', 'InOrOut',
+                    'dollarsum']
+
+## reorder columns and only keep some columns
+dfmapped = dfmapped[['Year', 'Date', 'InOrOut', 'AccountNum', 'Account', 'Budget', 'Category', 'SourceOfFunds', 'InOrOut_x', 'Account_x']]
+
+# %%
+## write to Excel
+dfmapped.to_excel('convert_out.xlsx', index=False)
+
 
 
 ##################################################
