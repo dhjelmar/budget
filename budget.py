@@ -78,7 +78,6 @@ print('icon_refresh = ', icon_refresh)
 
 ## May be better to keep map as a dataframe and use to modify account objects
 
-# %%
 map, map_duplicates = read_map()
 
 #%%
@@ -96,24 +95,36 @@ print(mapo[0].SourceOfFunds)
 
 
 ###############################################################################
-# %% [markdown]
+#%% [markdown]
 ## READ BUDGET DATA INTO DATAFRAME: budget
 budget, budget_duplicates = read_budget(startb.year)
-class budget_class():
+class account_class():
     def __init__(self, AccountNum, Accounta, Budget):
         self.AccountNum = AccountNum
-        self.Account_Budget = Accounta
+        self.Accounta = Accounta
         self.Budget = Budget
 
-budgeto = [budget_class(a.AccountNum, a.Accounta, a.Budget) for a in budget.itertuples()]
-
-print(vars(budgeto[0]))
-print(budgeto[0].AccountNum)
-print(budgeto[0].Account_Budget)
-print(budgeto[0].Budget)
+    def show(self):
+        print('       AccountNum:', self.AccountNum)
+        print('       Accounta   :', self.Accounta)
+        print('       Budget    :', self.Budget)
 
 
-## # %% [markdown]
+accounto = [account_class(a.AccountNum, a.Accounta, a.Budget) for a in budget.itertuples()]
+
+print(vars(accounto[0]))
+print(accounto[0].AccountNum)
+print(accounto[0].Accounta)
+print(accounto[0].Budget)
+
+#%%
+## access account info by AccountNum
+accounto[accounto.AccountNum == 4010].Budget
+
+
+
+
+## #%% [markdown]
 ## ## map categories to budget entries
 ## budget, missing = mapit(budget, map)
 
