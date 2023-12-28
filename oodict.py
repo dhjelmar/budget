@@ -1,6 +1,7 @@
 #%%
 # create dataframe
 import pandas as pd
+from pprint import pprint
 
 data = {
   'AccountNum': [420, 380, 390],
@@ -13,52 +14,25 @@ df = pd.DataFrame(data)
 print('dataframe of accounts')
 print(df)
 
-########################################################################
-#%%
-## create account objects
-
-## define class for account objects
-class account_class():
-    def __init__(self, AccountNum, Account, Value):
-        self.AccountNum = AccountNum
-        self.Account = Account
-        self.Value = Value
-
-## create account objects
-account_obj = [account_class(a.AccountNum, a.Account, a.Value) for a in df.itertuples()]
-print('example to access "Account" for account object with index 1')
-print(account_obj[1].Account)
-
-
-########################################################################
-#%%
-## Instead of above, create account dictionary to more easily access acounts by AccountNum
-account_dict = {}
-account_list = []
+#################################################################################
+# %%
+## put everything into the dictionary and acccess dictionary entries directly
+account_num_dict = {}
 for i in range(len(df)):
-    # account_dict[i] = {'index': i,
-    #                    'AccountNum': df.iloc[i].AccountNum}
-    account_dict[i] = {'AccountNum': df.iloc[i].AccountNum}
-    # account_list[i] = account_class(df.iloc[i].AccountNum, 
-    #                                 df.iloc[i].Account, 
-    #                                 df.iloc[i].Value)
-    account_list.append(account_class(df.iloc[i].AccountNum, 
-                                      df.iloc[i].Account, 
-                                      df.iloc[i].Value))
+    account_num_dict[df.iloc[i].AccountNum] = {'Account'   : df.iloc[i].Account, 
+                                               'Value'     : df.iloc[i].Value}
 
 ## print dictionary
-print(list(account_dict.values()))
+print('print dictionary')
+print(account_num_dict, '\n')
 
+## pretty print dictionary
+print('pretty print dictionary')
+pprint(account_num_dict)
+print()
 
-#%%
-## access object values
-print('access account list object using index for 2nd entry to get Value')
-print(account_list[1].Value)
-
-## using dictionary
-print('access account list object using AccountNum for 2nd entry to get Value')
-print(account_list[1].Account)
-
+print('use AccountNum key to select object and access Value (should be 40)')
+print(account_num_dict[380]['Value'], '\n')
 
 
 # %%
