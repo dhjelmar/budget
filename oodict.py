@@ -4,9 +4,9 @@ import pandas as pd
 from pprint import pprint
 
 data = {
-  'AccountNum': [420, 380, 390],
-  'Account': ['first', 'second', 'third'],
-  'Value': [50, 40, 45]
+  'AccountNum': [420, 380, 390, 500, 600, 700],
+  'Account': ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+  'Value': [50, 40, 55, 56, 57, 60]
 }
 
 #load data into a DataFrame object:
@@ -36,3 +36,5 @@ print(account_num_dict[380]['Value'], '\n')
 
 
 # %%
+############################################################
+## 
