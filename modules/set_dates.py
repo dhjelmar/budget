@@ -17,16 +17,39 @@ def set_dates():
     # %%
     ## https://towardsdatascience.com/working-with-datetime-in-pandas-dataframe-663f7af6c587
 
-    default = input('Press enter or escape to use current and prior year budget and comparison.\n'
+    default = input('Press enter or escape for default to use current and prior year budget and comparison.\n'
+                    '(If January, default will be prior year and year before that.)\n'
                     'Enter "x" (or anything else) to set start and end dates.')
     if default == "":
-        ## budget year to end of prior month
-        startb = dt.date(dt.date.today().year, 1, 1)
-        endb   = dt.date(dt.date.today().year, dt.date.today().month, 1) - dt.timedelta(days=1)
-        ## endb   = dt.date(2023,4,30)
+
+        ## create date variables
+        today = dt.date.today()
+        month = today.month
+
+        if month == 1:
+            ## month is January so default is to look at last year
+            ## budget year is prior year
+            yearb = today.year-1
+            ## comparison year is  year before that
+            yearc = today.year-2
+            ## adder to yearb in later endb calculation
+            adder = 1
+
+        else:
+            ## budget year is current year
+            yearb = today.year
+            ## comparison year is year before that
+            yearc = today.year-1
+            ## adder to yearb in later endb calculation
+            adder = 0
+
+        ## budget year
+        startb = dt.date(yearb, 1, 1)
+        # last day of prior month = 1st day of current month - 1 day
+        endb   = dt.date(yearb + adder, month, 1) - dt.timedelta(days=1)
         ## comparison year
-        startc = dt.date(dt.date.today().year-1, 1, 1)
-        endc   = dt.date(dt.date.today().year-1, 12, 31)
+        startc = dt.date(yearc, 1, 1)
+        endc   = dt.date(yearc, 12, 31)
 
     else:
         startb = input('Enter start date for budget     year (mm/dd/yyyy):')
