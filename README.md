@@ -9,13 +9,10 @@
 
 
 ## Input files expected in folder "input_files"
-+ budget_yyyy.xlsx = budget file in Excel format where yyyy is the year (e.g., budget_2023.xlsx) with the following required columns:
-  + InOrOut = 'In' for income; 'Out' for expenses
-  + Category = user defined categorization for each Account
-  + SourceOfFunds = text field generally used to identify
-                    Account as 'Undesignated', 'Covenant Fund', etc.
-  + Account       = 4-digit number followed by name of account
-                    Account needs to be the same in Icon
++ budget_yyyy.xlsx = budget file in Excel format where yyyy is the year (e.g., budget_2023.xlsx) with the following required columns. Other columns also allowed in the file but are not used.
+  + Account = 4-digit number followed by name of account
+              Account needs to be the same in Icon
+    Budget  = Value
 
 
 + budget_linear.xlsx = Excel file with planned budget for each investment fund. The purpose of listing these accounts is to assess the budget against a linear withdrawal from those accounts regardless of whether that is what is taken or not. The "Linear Adjustment" category in the output PDF will reflect deviations from that withdrawal plan. The file has the following required columns:
