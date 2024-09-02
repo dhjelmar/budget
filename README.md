@@ -43,11 +43,12 @@
 
 
 ## Environment
-+ Saved using:
-  + conda activate py39
-  + conda env export > environment_budget.yml
-+ Recreate using:
++ Create using:
   + conda env create -f environment_budget.yml
++ Activate using:
+  + conda activate budget
++ Resave using:
+  + conda env export > environment_budget.yml
 
 
 ## Executable (not working yet)
