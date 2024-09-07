@@ -38,6 +38,7 @@ def mapit(dataframe, map):
             df.loc[mask, 'dollarsum'] = df.loc[mask, 'dollarsum'] + df.loc[mask, i]
         df.loc[(df.InOrOut.isna()) & (df.dollarsum >= 0), 'InOrOut'] = 'In' 
         df.loc[(df.InOrOut.isna()) & (df.dollarsum <  0), 'InOrOut'] = 'Out' 
+        df.loc[(df.Category == 'Xbudget'), 'InOrOut'] = 'Xbudget' 
 
     return df, nan_values
 
