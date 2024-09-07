@@ -1,3 +1,7 @@
+import pandas as pd
+import datetime as dt
+import calendar
+
 def dateeom(dfin):
     '''
     In dataframe, dfin, pushes dates in column "Date" to month ends
@@ -15,9 +19,6 @@ def dateeom(dfin):
     -------
         dfout = dateeom(dfin)
     '''
-    import pandas as pd
-    import datetime as dt
-    import calendar
     df = dfin.copy()
     df.Date = pd.to_datetime(df.Date)
     for i in range(0,len(df)):
@@ -28,8 +29,11 @@ def dateeom(dfin):
         month = df.Date[i].month
         day = calendar.monthrange(year, month)[1]
         ## df.Date[i] = dt.date(year, month, day)
-        df.at[i, 'Date'] = dt.date(year, month, day)
+        df.at[i, 'Date'] = dt.datetime(year, month, day)
 
     df = df.reindex()
+
+    # convert datetime to date format
+    df.Date = pd.to_datetime(df['Date']).dt.date
 
     return df
