@@ -4,6 +4,7 @@ def read_budget(yearb):
     # %%
 
     import pandas as pd
+    import sys
 
     budgetfile = 'input_files/budget_' + str(yearb) + '.xlsx'
     alternate = input('Press enter to use following for budget: ' + budgetfile)
