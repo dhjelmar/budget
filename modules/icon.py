@@ -164,10 +164,9 @@ def icon(startb, endb, startc, endc):
     df2 = pd.DataFrame(list2)
     df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
-
-    ## convert dates to datetime
-    df1.Date = pd.to_datetime(df1.Date)
-    df2.Date = pd.to_datetime(df2.Date)
+    ## convert dates from str to datetime to date
+    df1.Date = pd.to_datetime(df1.Date).dt.date 
+    df2.Date = pd.to_datetime(df2.Date).dt.date 
     
     ## drop 'Account Type' column (i.e., whether "Revenues" or "Expenditures")
     df1 = df1.drop(columns=['Account Type'])
