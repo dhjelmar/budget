@@ -58,6 +58,7 @@ os.getcwd()
 # %%
 ## Set budget and comparison year start and end dates
 startb, endb, startc, endc = set_dates()
+# type(startb)     # datetime.date
 
 ## set layout for plots ('COL' for columns or 'ALT' for alternating plots/tables)
 layout = 'ALT'
@@ -93,13 +94,18 @@ budget, budget_duplicates = read_budget(startb.year)
 ###############################################################################
 # %% [markdown]
 ## Obtain ICON entries for budget year and comparison year
+
+#%%
 if icon_refresh == True:
     actualb, actualc = icon(startb, endb, startc, endc)
+    # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
     actualb.to_csv('temp_actualb.csv', index=False)
     actualc.to_csv('temp_actualc.csv', index=False)
+
 else:
     actualb = pd.read_csv('temp_actualb.csv')
     actualc = pd.read_csv('temp_actualc.csv')
+    # followign converts string to Timestamp (same as datetime.datetime) to datetime.date
     actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
     actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
     actualb['AccountNum'] = actualb['AccountNum'].astype(str)
@@ -107,13 +113,14 @@ else:
     actualb = actualb.loc[(actualb.Date >= startb) & (actualb.Date <= endb)]
     actualc = actualc.loc[(actualc.Date >= startc) & (actualc.Date <= endc)]
 
+#%%
 ## add a beginning of year entry for every budget item to actualb
 time0 = budget.copy()
 time0.columns = ['Account', 'Amount', 'AccountNum']
 time0['Date'] = startb
 time0 = time0[['Date', 'Account', 'Amount', 'AccountNum']]
 time0.Amount = 0
-actualb = pd.concat([time0, actualb], axis=0)  # rbind
+actualb = pd.concat([time0, actualb], axis=0)  # rbind; this changed type from Timestamp to datetime.date
 actualb.index = range(len(actualb))            # renumber dataframe
 ## do the same for actualc
 time0['Date'] = startc
