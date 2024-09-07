@@ -16,3 +16,4 @@ dependencies:
    - pip:
       - dataframe_image
       - ocrmypdf
+      - fpdf
