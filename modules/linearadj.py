@@ -1,19 +1,22 @@
+import pandas as pd
+import numpy as np
+import datetime as dt
+import regex as re
+from modules.date_eom import date_eom
+from modules.dateeom import dateeom
+
 def linearadj(filename, dfin, start, end):
     '''
     Read filename to...
     '''
-    import pandas as pd
-    import numpy as np
-    import datetime as dt
-    from modules.date_eom import date_eom
-    from modules.dateeom import dateeom
 
     # %%
     df = dfin.copy()
 
     ## monthly sum for df and dfc then flatten
     df = dateeom(df)
-    df = df.pivot_table(index=['AccountNum', 'Date'], values=['Amount'], aggfunc=np.sum) # monthly sum
+    #df = df.pivot_table(index=['AccountNum', 'Date'], values=['Amount'], aggfunc=np.sum) # monthly sum
+    df = df.pivot_table(index=['AccountNum', 'Date'], values=['Amount'], aggfunc='sum') # monthly sum
     df = df.reset_index()    # flatten
 
     # %%
@@ -23,9 +26,21 @@ def linearadj(filename, dfin, start, end):
     linear_list = list(linear.AccountNum.unique())
 
     ## determine correct columns from linear for budgetb and budgetc and redefine linear dataframe
-    budget = linear['budget'+str(start.year)]
-    linear = pd.DataFrame({'AccountNum' : linear.AccountNum, 
-                           'budget'     : budget})
+    currentyear = 'budget'+str(start.year)
+    print('currentyear=', currentyear)
+    print('str(linear.columns)=', str(linear.columns))
+    cols_as_string = ''.join(str(x) for x in linear.columns.tolist())
+    if re.search(currentyear, cols_as_string):
+        # current year is in the linear adjustment file
+        budget = linear[currentyear]
+        linear = pd.DataFrame({'AccountNum' : linear.AccountNum, 
+                               'budget'     : budget})
+    else:
+        # still need to add linear adjustment column for current year to file
+        print('#################################################################')
+        print('# FATAL ERROR: NEED TO ADD COLUMN FOR CURRENT YEAR TO', filename)
+        print('#################################################################')
+        exit()
 
     # %%
     ## expand linear to have an entry for each AccountNum for each month
