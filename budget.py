@@ -22,7 +22,6 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import regex as re
-import sys
 import calendar
 import dataframe_image as dfi    # had to install with pip
 import jellyfish
@@ -69,7 +68,7 @@ apply_linear_adjustments = True
 print('apply_linear_adjustments = ', apply_linear_adjustments)
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 print('icon_refresh = ', icon_refresh)
 
 ###############################################################################
