@@ -13,7 +13,11 @@
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
 # # Budget Vs. Actual Spending
 
-# %% 
+# %%
+# to enable autoreload of a modules
+%reload_ext autoreload
+%autoreload 2
+
 ## import packages
 import pandas as pd
 import datetime as dt
@@ -47,7 +51,8 @@ from modules.dfplot_inout import dfplot_inout
 from modules.rmdir import rmdir
 from modules.category_plot import category_plot
 from modules.category_table import category_table
-
+from modules.tableit import tableit
+from modules.inconsistent import inconsistent
 os.getcwd()
 
 
@@ -147,12 +152,10 @@ if apply_linear_adjustments == True:
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 
 # %%
-from modules.tableit import tableit
 table  = tableit(map, budget, actualb, actualc, 
                  startb, endb, startc)
 
-# %%
-from modules.inconsistent import inconsistent
+#%%
 inconsistencies = inconsistent(map, budget, actualb, actualc, 
                                startb, endb, startc)
 
