@@ -33,6 +33,7 @@ import os
 
 ## import my functions
 import modules as my
+
 os.getcwd()
 
 
@@ -282,7 +283,7 @@ df['Budget'] = df['Budget'].apply(my.dollars.to_str)
 #    'YTD%': '{:,.0%}'.format,
 #})
 # df.style.format({'YTD%': "{:.0%}"})
-df['YTD%'] = my.df['YTD%'].apply(my.percent)
+df['YTD%'] = df['YTD%'].apply(my.percent)
 df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
