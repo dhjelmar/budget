@@ -51,9 +51,9 @@ def inconsistent(map, budget, actualb, actualc,
     ## Check actual for mismatched account names
     mismatched_dict = []
     for row in range(len(all)):
-        a = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accounta']))
-        b = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accountb']))
-        c = jellyfish.jaro_distance(str(all.loc[row,'Account']), str(all.loc[row,'Accountc']))
+        a = jellyfish.jaro_similarity(str(all.loc[row,'Account']), str(all.loc[row,'Accounta']))
+        b = jellyfish.jaro_similarity(str(all.loc[row,'Account']), str(all.loc[row,'Accountb']))
+        c = jellyfish.jaro_similarity(str(all.loc[row,'Account']), str(all.loc[row,'Accountc']))
         similar = min(a,b,c)
         if similar < 1:
             ## not 100% similar so add to mismatched_dict
