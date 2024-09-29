@@ -12,7 +12,6 @@ dependencies:
    - pytesseract
    - ipykernel
    - openpyxl
-   - fpdf
    - pip
    - pip:
       - dataframe_image
