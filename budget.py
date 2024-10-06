@@ -83,7 +83,7 @@ budget, budget_duplicates = my.read_budget(startb.year)
 
 #%%
 if icon_refresh == True:
-    actualb, actualc = icon(startb, endb, startc, endc)
+    actualb, actualc = my.icon(startb, endb, startc, endc)
     # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
     actualb.to_csv('temp_actualb.csv', index=False)
     actualc.to_csv('temp_actualc.csv', index=False)
