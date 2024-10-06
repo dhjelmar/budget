@@ -1,3 +1,7 @@
+budget_report_*
+temp_actualb.csv
+temp_actualc.csv
+tmp_figures
 figures/
 __pycache__/
 modules/__pycache__/
