@@ -152,6 +152,7 @@ print()
 print("starting to read checking.xlsx")
 checkingfile = os.path.join('input', 'checking.xlsx')
 checking = pd.read_excel(checkingfile)
+print(checking.tail().to_string())
 
 #%%
 ## income from checking for expenses
@@ -168,7 +169,6 @@ checkingc = checking.loc[checking.Year==startc.year].copy()
 checkingb = checkingb[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 checkingc = checkingc[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 
-print(checkingc.tail().to_string())
 
 #%%
 # add to actualb and actualc
