@@ -79,7 +79,7 @@ icon_refresh = True
 print()
 print("starting to read map.xlsx")
 map, map_duplicates = my.read_map()
-print(map.head().to_string())
+print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 
 
 ###############################################################################
