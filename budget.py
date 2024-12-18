@@ -1,4 +1,4 @@
-#!/c/Users/dlhje/anaconda3/envs/py39/python
+#!/c/Users/dlhje/anaconda3/envs/budget/python
 # remember to also make the script executable: chmod 755 budget.py
 # execute script with: ./budget.py
 
@@ -9,6 +9,14 @@
 ##      b. Double click project folder in File Explorer
 ##         (double clicking budget.py in File Explorer does not open Project correctly)
 ##   3. Select "Run Below" in the cell below these instructions
+
+# alternately, create executable with
+#   pyinstaller budget.py --onefile --hidden-import openpyxl.cell._writer
+# in linux, this creates
+#   budget
+# in windows, this creates
+#   budget.exe
+# In windows, can run by double clicking executable in file explorer
 
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
 # # Budget Vs. Actual Spending
@@ -55,20 +63,30 @@ startb, endb, startc, endc = my.set_dates()
 #apply_linear_adjustments = True
 #print('apply_linear_adjustments = ', apply_linear_adjustments)
 
+## set whether running interactively or batch
+## batch = False uses getpass() for password which hides password but does not work interactively
+##       = True uses input() for password which does work interactively
+batch = True
+
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 
 ###############################################################################
 # %% [markdown]
 ## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME: map
 
 # %%
+print()
+print("starting to read map.xlsx")
 map, map_duplicates = my.read_map()
+print(map.head().to_string())
 
 
 ###############################################################################
 # %% [markdown]
 ## READ BUDGET DATA INTO DATAFRAME: budget
+print()
+print("starting to read budget.xlsx")
 budget, budget_duplicates = my.read_budget(startb.year)
 budget = budget.rename(columns={'Account': 'Account_Budget'})
 
@@ -76,6 +94,8 @@ budget = budget.rename(columns={'Account': 'Account_Budget'})
 ## filter budget to only requested year then drop the year column
 budget = budget.loc[budget.Year==startb.year].copy()
 budget = budget.drop('Year', axis='columns')
+
+print(budget.head().to_string())
 
 #%%
 # add a budget line for checking account
@@ -96,7 +116,9 @@ print('icon_refresh = ', icon_refresh)
 
 #%%
 if icon_refresh:
-    actualb, actualc = my.icon(startb, endb, startc, endc)
+    print()
+    print('pull data from Icon')
+    actualb, actualc = my.icon(startb, endb, startc, endc, batch)
     # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
     if not os.path.exists('tmp'):
         os.mkdir('tmp')
@@ -104,6 +126,8 @@ if icon_refresh:
     actualc.to_csv('tmp/actualc.csv', index=False)
 
 else:
+    print()
+    print('pull data from saved Icon files')
     actualb = pd.read_csv('tmp/actualb.csv')
     actualc = pd.read_csv('tmp/actualc.csv')
     # followign converts string to Timestamp (same as datetime.datetime) to datetime.date
@@ -124,7 +148,10 @@ actualc = actualc.rename(columns={'Account': 'Account_Icon'})
 ###############################################################################
 # %% [markdown]
 ## READ CHECKING DATA INTO DATAFRAME: checking
-checking = pd.read_excel('input/checking.xlsx')
+print()
+print("starting to read checking.xlsx")
+checkingfile = os.path.join('input', 'checking.xlsx')
+checking = pd.read_excel(checkingfile)
 
 #%%
 ## income from checking for expenses
@@ -140,6 +167,8 @@ checkingb = checking.loc[checking.Year==startb.year].copy()
 checkingc = checking.loc[checking.Year==startc.year].copy()
 checkingb = checkingb[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 checkingc = checkingc[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
+
+print(checkingc.tail().to_string())
 
 #%%
 # add to actualb and actualc
@@ -166,7 +195,7 @@ actualc.index = range(len(actualc))            # renumber dataframe
 # concat messed up date format so following fixes it back to datetime.date
 actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
 actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
-print(type(actualc.Date[len(actualc)-1]))
+#print(type(actualc.Date[len(actualc)-1]))
 
 
 # %%
@@ -202,7 +231,7 @@ first = ['InOrOut', 'L1', 'L2', 'Date', 'Account_Icon', 'Account_Map', 'Amount',
 all = my.first(all, first)
 if not os.path.exists('output'):
         os.mkdir('output')
-all.to_csv('output/all.csv', index=False)
+all.to_csv(os.path.join('output', 'all.csv'), index=False)
 
 
 ###############################################################################
@@ -210,14 +239,24 @@ all.to_csv('output/all.csv', index=False)
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 
 # %%
+print()
+print("creating table for budget report")
 table  = my.tableit(map, budget, actualb, actualc, 
                  startb, endb, startc)
 
 # reorder
-first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'Last YTD']
+first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'YTD%', 'Last YTD']
 table = my.first(table, first)
 
-table.to_csv('output/table.csv', index=False)
+table.to_csv(os.path.join('output', 'table.csv'), index=False)
+
+print()
+print("find output/table.csv")
+print(table.to_string())
+
+
+#%%
+input('Press enter to exit this window')
 
 
 #%%
@@ -261,13 +300,12 @@ print(table_totals_summary.head())
 table_totals_summary = table_totals_summary[['Budget', 'YTD%', 'YTD', 'Last YTD', 'Current Month']]
 table_totals_summary.loc[('_Total', '_Total'),'YTD%'] = 'NA'
 # print(df.loc[('_Total', '_Total'),'YTD%'])
-'''
-table_totals_summary_print = table_totals_summary.copy()
-table_totals_summary_print['Budget'] = my.table_totals_summary_print['Budget'].apply(my.dollars.to_str)
-table_totals_summary_print['YTD'] = my.table_totals_summary_print['YTD'].apply(my.dollars.to_str)
-table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(my.dollars.to_str)
-print(table_totals_summary_print)
-'''    
+#table_totals_summary_print = table_totals_summary.copy()
+#table_totals_summary_print['Budget'] = my.table_totals_summary_print['Budget'].apply(my.dollars.to_str)
+#table_totals_summary_print['YTD'] = my.table_totals_summary_print['YTD'].apply(my.dollars.to_str)
+#table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(my.dollars.to_str)
+#print(table_totals_summary_print)
+   
 
 # %%
 ## test error with table_totals_summary

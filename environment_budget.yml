@@ -9,7 +9,7 @@ dependencies:
    - numpy
    - regex
    - jellyfish
-   - pytesseract
+   #- pytesseract
    - ipykernel
    - openpyxl
    - pyinstaller
@@ -18,3 +18,4 @@ dependencies:
       - dataframe_image
       - ocrmypdf
       - fpdf
+      - getpass4

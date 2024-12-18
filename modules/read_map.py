@@ -1,9 +1,13 @@
+import os
+
 def read_map(keep='main'):
     ## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
     import pandas as pd
     import sys
-    mapfile = 'input/map.xlsx'
-    print('map file:', mapfile)
+    # mapfile = 'input/map.xlsx'
+    # os.path.join() used instead of above to work on Windows and Linux
+    mapfile = os.path.join('input', 'map.xlsx')
+    #print('map file:', mapfile)
     
     map = pd.read_excel(mapfile)
     map['Account'] = map['Account'].str.strip()    # strip leading and trailing white space

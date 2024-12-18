@@ -1,4 +1,6 @@
-def icon(startb, endb, startc, endc):
+from getpass4 import getpass
+
+def icon(startb, endb, startc, endc, batch):
     '''
     Import following from IconCMO: Accounts
                                    Register entries between startb and endb
@@ -47,8 +49,12 @@ def icon(startb, endb, startc, endc):
     phonenumber = "5183772201"
     ## if ('username' not in locals()) | ('password' not in locals()):
     if (username == "") | (password == ""):
-        username = input("Input ICON user name:")
-        password = input("Input ICON password:")
+        print()
+        username = input("Enter ICON user name:")
+        if batch:
+            password = getpass(prompt='Enter ICON password: ')
+        else:
+            password = input("Enter ICON password:")
 
     # %%
     ## issue request through api
@@ -192,6 +198,7 @@ def icon(startb, endb, startc, endc):
     #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
     #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
 
+    print()
     print('budget year entries in dataframe, actualb_read:')
     print(df2)
     print()

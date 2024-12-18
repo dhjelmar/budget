@@ -1,3 +1,5 @@
+import os
+
 def read_budget(yearb):
     ## READ BUDGET DATA INTO DATAFRAME: budget
 
@@ -6,7 +8,7 @@ def read_budget(yearb):
     import pandas as pd
     import sys
 
-    budgetfile = 'input/budget.xlsx'
+    budgetfile = os.path.join('input', 'budget.xlsx')
     
     ## read budget file
     budget = pd.read_excel(budgetfile)
@@ -28,7 +30,7 @@ def read_budget(yearb):
     budget = budget[budget.Budget != 0]
     budget = budget.dropna(subset = ['Budget'])
     #mask = budget[budget.Budget != 0 ].all(axis=1)]   # this seems to create a mask
-    print(budget.head())
+    #print(budget.head())
 
     # check for non-unique account numbers
     years = list(dict.fromkeys(budget.Year))

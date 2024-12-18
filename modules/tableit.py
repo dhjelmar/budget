@@ -9,6 +9,7 @@ def tableit(map, budget, actualb, actualc,
     from modules.dateeom import dateeom
     from modules.linearadj import linearadj
     from modules.highlight import highlight
+    from modules.first import first
 
     ## prior month expenses
     actualbm = dateeom(actualb.copy())
@@ -60,16 +61,14 @@ def tableit(map, budget, actualb, actualc,
     table.index = range(len(table))
 
     # %%
-    '''
     ## add column for YTD percent
     table['YTD%'] = table['YTD'] / table['Budget'] * 100
     ## replace nan, inf, and -inf with 999
-    table['YTD%'] = table['YTD%'].replace([np.nan, np.inf, -np.inf], 999, inplace=True)
+    table['YTD%'] = table['YTD%'].replace([np.nan, np.inf, -np.inf], 999)
     ## round to integer
     table['YTD%'] = table['YTD%'].round(0).astype(int)
     ## replace 999 with inf
-    table['YTD%'] = table['YTD%'].replace([999], np.inf, inplace=True)
-    '''
+    table['YTD%'] = table['YTD%'].replace([999], np.inf)
 
     # %%
     ## sort table and add a flag for changes to category

@@ -16,8 +16,10 @@ def mapit(df1, map):
     missing_from_map = df1[df1['AccountNum'].isin(nan_values.AccountNum.to_list())]
     if len(nan_values) != 0:
         print('')
-        print('FATAL ERROR: No assignment in map.xlsx file for the following')
+        print('FATAL ERROR: No assignment in map.xlsx file for the following.')
+        print('             Fix entry in Icon or, if Icon is correct, add new entry to map.xlsx.')
         print(missing_from_map)
+        input('Press enter to exit this window')
         sys.exit()
 
         '''
