@@ -175,10 +175,10 @@ def icon(startb, endb, startc, endc):
     ## add AccountNum column
     df1['Account'] = df1['Account'].str.strip()    # strip leading and trailing white space
     ## create another column with budget line item number only because database not consistent with descriptions
-    df1['AccountNum'] = df1.Account.str.extract('(\d+)')
+    #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
     df2['Account'] = df2['Account'].str.strip()    # strip leading and trailing white space
     ## create another column with budget line item number only because database not consistent with descriptions
-    df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+    #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
 
     ## convert Ammount from string to number
     df1['Amount'] = df1['Amount'].apply(dollars.to_num)
@@ -189,8 +189,8 @@ def icon(startb, endb, startc, endc):
     df2['Account'] = df2['Account'].str.strip()
 
     ## extract account numbers to separate variable
-    df1['AccountNum'] = df1.Account.str.extract('(\d+)')
-    df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+    #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
+    #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
 
     print('budget year entries in dataframe, actualb_read:')
     print(df2)

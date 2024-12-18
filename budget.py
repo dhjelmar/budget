@@ -14,9 +14,10 @@
 # # Budget Vs. Actual Spending
 
 # %%
-# to enable autoreload of a modules
-%reload_ext autoreload
-%autoreload 2
+## to enable autoreload of modules
+## comment out when compile
+#%reload_ext autoreload
+#%autoreload 2
 
 ## import packages
 import pandas as pd
@@ -47,16 +48,15 @@ startb, endb, startc, endc = my.set_dates()
 # type(startb)     # datetime.date
 
 ## set layout for plots ('COL' for columns or 'ALT' for alternating plots/tables)
-layout = 'ALT'
-print('layout = ', layout)
+#layout = 'ALT'
+#print('layout = ', layout)
 
 ## set whether to apply linear adjustments for Covenant, Endowment, UP Fund, Tercentenary income
-apply_linear_adjustments = True
-print('apply_linear_adjustments = ', apply_linear_adjustments)
+#apply_linear_adjustments = True
+#print('apply_linear_adjustments = ', apply_linear_adjustments)
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
 icon_refresh = False
-print('icon_refresh = ', icon_refresh)
 
 ###############################################################################
 # %% [markdown]
@@ -70,7 +70,17 @@ map, map_duplicates = my.read_map()
 # %% [markdown]
 ## READ BUDGET DATA INTO DATAFRAME: budget
 budget, budget_duplicates = my.read_budget(startb.year)
+budget = budget.rename(columns={'Account': 'Account_Budget'})
 
+#%%
+## filter budget to only requested year then drop the year column
+budget = budget.loc[budget.Year==startb.year].copy()
+budget = budget.drop('Year', axis='columns')
+
+#%%
+# add a budget line for checking account
+new_row = pd.DataFrame({'Account_Budget':['0000 Checking Account'], 'Budget':[0], 'AccountNum':['0000']})
+budget = pd.concat([budget, new_row], ignore_index=True)
 
 ## # %% [markdown]
 ## ## map categories to budget entries
@@ -82,30 +92,70 @@ budget, budget_duplicates = my.read_budget(startb.year)
 ## Obtain ICON entries for budget year and comparison year
 
 #%%
-if icon_refresh == True:
+print('icon_refresh = ', icon_refresh)
+
+#%%
+if icon_refresh:
     actualb, actualc = my.icon(startb, endb, startc, endc)
     # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
-    actualb.to_csv('temp_actualb.csv', index=False)
-    actualc.to_csv('temp_actualc.csv', index=False)
+    if not os.path.exists('tmp'):
+        os.mkdir('tmp')
+    actualb.to_csv('tmp/actualb.csv', index=False)
+    actualc.to_csv('tmp/actualc.csv', index=False)
 
 else:
-    actualb = pd.read_csv('temp_actualb.csv')
-    actualc = pd.read_csv('temp_actualc.csv')
+    actualb = pd.read_csv('tmp/actualb.csv')
+    actualc = pd.read_csv('tmp/actualc.csv')
     # followign converts string to Timestamp (same as datetime.datetime) to datetime.date
     actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
     actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
-    actualb['AccountNum'] = actualb['AccountNum'].astype(str)
-    actualc['AccountNum'] = actualc['AccountNum'].astype(str)
+    # following is only needed if the requested date ranges are smaller than what is in the csv files
     actualb = actualb.loc[(actualb.Date >= startb) & (actualb.Date <= endb)]
     actualc = actualc.loc[(actualc.Date >= startc) & (actualc.Date <= endc)]
+
+# extract account numbers
+actualb['AccountNum'] = actualb['Account'].str[:4]
+actualc['AccountNum'] = actualc['Account'].str[:4]
+
+# rename Account to Account_ICON
+actualb = actualb.rename(columns={'Account': 'Account_Icon'})
+actualc = actualc.rename(columns={'Account': 'Account_Icon'})
+
+###############################################################################
+# %% [markdown]
+## READ CHECKING DATA INTO DATAFRAME: checking
+checking = pd.read_excel('input/checking.xlsx')
+
+#%%
+## income from checking for expenses
+## positive means balance went down because we took money as income from checking
+checking['Account_Icon'] = '0000 Checking Account'
+balance_increase = checking['Balance'] - checking['Balance'].shift(1)
+checking['Amount'] = -balance_increase
+checking['AccountNum'] = '0000'
+checking['Year'] = checking['Date'].dt.year
+
+## extract for each year
+checkingb = checking.loc[checking.Year==startb.year].copy()
+checkingc = checking.loc[checking.Year==startc.year].copy()
+checkingb = checkingb[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
+checkingc = checkingc[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
+
+#%%
+# add to actualb and actualc
+actualb = pd.concat([actualb, checkingb], ignore_index=True)
+actualc = pd.concat([actualc, checkingc], ignore_index=True)
+
 
 #%%
 ## add a beginning of year entry for every budget item to actualb
 time0 = budget.copy()
-time0.columns = ['Account', 'Amount', 'AccountNum']
+time0.columns = ['Account_Icon', 'Amount', 'AccountNum']
 time0['Date'] = startb
-time0 = time0[['Date', 'Account', 'Amount', 'AccountNum']]
+time0 = time0[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 time0.Amount = 0
+
+#%%
 actualb = pd.concat([time0, actualb], axis=0)  # rbind; this changed type from Timestamp to datetime.date
 actualb.index = range(len(actualb))            # renumber dataframe
 ## do the same for actualc
@@ -113,19 +163,46 @@ time0['Date'] = startc
 actualc = pd.concat([time0, actualc], axis=0)  # rbind
 actualc.index = range(len(actualc))            # renumber dataframe
 
+# concat messed up date format so following fixes it back to datetime.date
+actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
+actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
+print(type(actualc.Date[len(actualc)-1]))
+
 
 # %%
+'''
 ### Add adjustment entries for linear YTD income in actualb and entire year in actualc
 if apply_linear_adjustments == True:
-    filename = 'input_files/budget_linear.xlsx'
+    filename = 'input/budget_linear.xlsx'
     actualblin, linearb = my.linearadj(filename, actualb, startb, endb)
     actualclin, linearc = my.linearadj(filename, actualc, startc, endc)
     actualb = actualblin.copy()
     actualc = actualclin.copy()
+'''
 
-###############################################################################
-# %% [markdown]
-## Read investment data file  (NOT CODED YET)
+
+#%%
+## map 
+## left join with mapit
+actualb, missingb = my.mapit(actualb, map)
+actualc, missingc = my.mapit(actualc, map)
+
+#%%
+## combine and write csv file
+all = pd.concat([actualc, actualb], axis=0)  # rbind
+all = all.rename(columns={'Account': 'Account_Map'})
+all.columns
+all.index = range(0,len(all))
+similar = []
+for row in range(len(all)):
+    a = jellyfish.jaro_similarity(str(all.loc[row,'Account_Icon']), str(all.loc[row,'Account_Map']))
+    similar.append(a)
+all['Similarity'] = similar
+first = ['InOrOut', 'L1', 'L2', 'Date', 'Account_Icon', 'Account_Map', 'Amount', 'Similarity']
+all = my.first(all, first)
+if not os.path.exists('output'):
+        os.mkdir('output')
+all.to_csv('output/all.csv', index=False)
 
 
 ###############################################################################
@@ -136,6 +213,18 @@ if apply_linear_adjustments == True:
 table  = my.tableit(map, budget, actualb, actualc, 
                  startb, endb, startc)
 
+# reorder
+first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'Last YTD']
+table = my.first(table, first)
+
+table.to_csv('output/table.csv', index=False)
+
+
+#%%
+###############################################################################
+###############################################################################
+###############################################################################
+'''
 #%%
 inconsistencies = my.inconsistent(map, budget, actualb, actualc, 
                                   startb, endb, startc)
@@ -364,3 +453,4 @@ fileout = 'budget_report_' + str(endb) + '.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
 
 # %%
+'''

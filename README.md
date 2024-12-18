@@ -8,7 +8,7 @@
     + Table and figures to compare for line items
 
 
-## Input files expected in folder "input_files"
+## Input files expected in folder "input"
 + budget_yyyy.xlsx = budget file in Excel format where yyyy is the year (e.g., budget_2023.xlsx) with the following required columns. Other columns also allowed in the file but are not used.
   + Account = 4-digit number followed by name of account
               Account needs to be the same in Icon

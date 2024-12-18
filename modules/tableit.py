@@ -23,11 +23,11 @@ def tableit(map, budget, actualb, actualc,
 
     # %%
     ## use pivot table to sum ytd and current month totals
-    ytdb = ytdb.pivot_table(index=['AccountNum'], values='Amount', aggfunc=np.sum).reset_index()
+    ytdb = ytdb.pivot_table(index=['AccountNum'], values='Amount', aggfunc="sum").reset_index()
     ytdb.columns = ['AccountNum', 'YTD']
-    ytdc = ytdc.pivot_table(index=['AccountNum'], values='Amount', aggfunc=np.sum).reset_index()
+    ytdc = ytdc.pivot_table(index=['AccountNum'], values='Amount', aggfunc="sum").reset_index()
     ytdc.columns = ['AccountNum', 'Last YTD']
-    actualbm = actualbm.pivot_table(index=['AccountNum'], values='Amount', aggfunc=np.sum).reset_index()
+    actualbm = actualbm.pivot_table(index=['AccountNum'], values='Amount', aggfunc="sum").reset_index()
     actualbm.columns = ['AccountNum', 'Current Month']
     # temp.loc[temp.AccountNum == '4044']
 
@@ -44,12 +44,13 @@ def tableit(map, budget, actualb, actualc,
     all.index = range(len(all))
 
     # %%
-    ## left join with mapit
+    ## left join with mapit because pivot_table removed the mapping when applied to actualb and actualc
     all, missing = mapit(all, map)
-
+    
     # %%
     ## select columns to keep
-    table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
+    ##table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
+    table = all
 
     # %%
     ## eliminate any rows in table where all entries are $0
@@ -73,8 +74,8 @@ def tableit(map, budget, actualb, actualc,
     # %%
     ## sort table and add a flag for changes to category
     ##table = table.sort_values(by = ['Account', 'Category', 'InOrOut'], ascending=True, na_position='last')
-    table = table.sort_values(by = ['InOrOut', 'Category', 'Account'], ascending=True, na_position='last')
-    i = table.Category    
+    table = table.sort_values(by = ['InOrOut', 'L1', 'L2', 'Account'], ascending=True, na_position='last')
+    i = table.L2    
     table['flag'] = i.ne(i.shift()).cumsum() % 2
     table.style.apply(highlight, axis=1)
 

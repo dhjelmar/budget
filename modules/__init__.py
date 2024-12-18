@@ -18,3 +18,4 @@ from modules.category_plot import category_plot
 from modules.category_table import category_table
 from modules.tableit import tableit
 from modules.inconsistent import inconsistent
+from modules.first import first

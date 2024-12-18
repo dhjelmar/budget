@@ -1,27 +1,30 @@
 # %%
-def mapit(dataframe, map):
+import sys
+
+def mapit(df1, map):
     '''
-    pd.merge(dataframe, map, how='left', on='AccountNum')
+    pd.merge(df1, map, how='left', on='AccountNum')
     '''
 
     import pandas as pd
     import regex as re
 
-    df = dataframe.copy()
-    df = pd.merge(df, map, how='left', on='AccountNum')
+    df = pd.merge(df1, map, how='left', on='AccountNum')
 
     ## flag any line items from dataframe that are not in the map (e.g., so no Category assigned)
-    nan_values = df[df['Category'].isna()]
+    nan_values = df[df['L2'].isna()]
+    missing_from_map = df1[df1['AccountNum'].isin(nan_values.AccountNum.to_list())]
     if len(nan_values) != 0:
-    #    print('')
-    #    print('FATAL ERROR: Following budget entries are missing a Category assignment in map.xlsx file')
-    #    print(nan_values)
-    #    sys.exit()
+        print('')
+        print('FATAL ERROR: No assignment in map.xlsx file for the following')
+        print(missing_from_map)
+        sys.exit()
 
+        '''
         ## classify anything that does not have Category defined in map
-        mask = df['Category'].isna()
-        df.loc[mask, 'Category'] = 'Xbudget'
-        df.loc[mask, 'SourceOfFunds'] = 'Xbudget'
+        mask = df['L2'].isna()
+        df.loc[mask, 'L1'] = 'Xbudget'
+        df.loc[mask, 'L2'] = 'Xbudget'
        
         ## if Account is missing from map, replace it with Account from dataframe
         if 'Account' in df:
@@ -31,16 +34,19 @@ def mapit(dataframe, map):
         if 'Account_y' in df:
             df.loc[df['Account_y'].isna(), 'Account_y'] = df['AccountNum']
 
-        ## set InOrOut based on dollar fields being positive or negative
+        ## sum dollar fields
         dollarfields = [x for x in df.columns if re.findall(r'Amount',x)]
         df['dollarsum'] = 0   # initialize new variable
         for i in dollarfields:
             df.loc[mask, 'dollarsum'] = df.loc[mask, 'dollarsum'] + df.loc[mask, i]
+
+        ## if not defined, set InOrOut based on dollar fields being positive or negative
         df.loc[(df.InOrOut.isna()) & (df.dollarsum >= 0), 'InOrOut'] = 'In' 
         df.loc[(df.InOrOut.isna()) & (df.dollarsum <  0), 'InOrOut'] = 'Out' 
         df.loc[(df.Category == 'Xbudget'), 'InOrOut'] = 'Xbudget' 
+        '''
 
-    return df, nan_values
+    return df, missing_from_map
 
 
 #import pandas as pd

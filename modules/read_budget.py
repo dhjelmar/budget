@@ -6,18 +6,14 @@ def read_budget(yearb):
     import pandas as pd
     import sys
 
-    budgetfile = 'input_files/budget_' + str(yearb) + '.xlsx'
-    alternate = input('Press enter to use following for budget: ' + budgetfile)
-    if alternate != "":
-        budgetfile = alternate
-    print('budget file     :', budgetfile)
+    budgetfile = 'input/budget.xlsx'
     
     ## read budget file
     budget = pd.read_excel(budgetfile)
     ## budget.columns = budget.columns.str.replace('[ ,!,@,#,$,%,^,&,*,(,),-,+,=,\',\"]', '_', regex=True)
     
     ## only keep needed columns
-    budget = budget[['Account', 'Budget']]
+    budget = budget[['Year', 'Account', 'Budget']]
     
     ## strip leading and trailing white space
     budget['Account'] = budget['Account'].str.strip()    
@@ -26,7 +22,7 @@ def read_budget(yearb):
     budget['AccountNum'] = budget.Account.str.extract('(^\d+a|^\d+)')
 
     ## rename Account column
-    budget.columns = ['Accounta', 'Budget', 'AccountNum']
+    budget.columns = ['Year', 'Account', 'Budget', 'AccountNum']
     
     ## drop any zero value or na
     budget = budget[budget.Budget != 0]
@@ -35,13 +31,15 @@ def read_budget(yearb):
     print(budget.head())
 
     # check for non-unique account numbers
-    df = budget.AccountNum
-    dups = df[df.duplicated()]
-    if (len(dups) != 0):
-        print('')
-        print('FATAL ERROR: Duplicate Account numbers in budget file')
-        print('duplicates:')
-        print(dups)
-        sys.exit()
+    years = list(dict.fromkeys(budget.Year))
+    for year in years:
+        df = budget.loc[budget.Year==year].AccountNum
+        dups = df[df.duplicated()]
+        if (len(dups) != 0):
+            print('')
+            print('FATAL ERROR: Duplicate Account numbers in budget file')
+            print('duplicates:')
+            print(dups)
+            sys.exit()
 
     return budget, dups
