@@ -69,7 +69,7 @@ startb, endb, startc, endc = my.set_dates()
 batch = True
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 
 ###############################################################################
 # %% [markdown]
@@ -252,7 +252,7 @@ table.to_csv(os.path.join('output', 'table.csv'), index=False)
 
 print()
 print("find output/table.csv")
-print(table.to_string())
+print(table[['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'YTD%', 'Last YTD']].head().to_string())
 
 
 #%%
