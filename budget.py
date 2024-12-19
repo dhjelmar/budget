@@ -66,10 +66,10 @@ startb, endb, startc, endc = my.set_dates()
 ## set whether running interactively or batch
 ## batch = False uses getpass() for password which hides password but does not work interactively
 ##       = True uses input() for password which does work interactively
-batch = True
+batch = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 
 ###############################################################################
 # %% [markdown]
@@ -248,11 +248,12 @@ table.to_csv(os.path.join('output', 'table.csv'), index=False)
 
 print()
 print("find output/table.csv")
-print(table[['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'YTD%', 'Last YTD']].head().to_string())
+print(table[first].head().to_string())
 
 
 #%%
-input('Press enter to exit this window')
+if batch:
+    input('Press enter to exit this window')
 
 
 #%%
