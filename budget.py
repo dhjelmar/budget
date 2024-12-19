@@ -69,7 +69,7 @@ startb, endb, startc, endc = my.set_dates()
 batch = True
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 
 ###############################################################################
 # %% [markdown]
@@ -98,9 +98,9 @@ budget = budget.drop('Year', axis='columns')
 print(budget.head().to_string())
 
 #%%
-# add a budget line for checking account
-new_row = pd.DataFrame({'Account_Budget':['0000 Checking Account'], 'Budget':[0], 'AccountNum':['0000']})
-budget = pd.concat([budget, new_row], ignore_index=True)
+## add a budget line for checking account
+#new_row = pd.DataFrame({'Account_Budget':['0000 Checking Account'], 'Budget':[0], 'AccountNum':['0000']})
+#budget = pd.concat([budget, new_row], ignore_index=True)
 
 ## # %% [markdown]
 ## ## map categories to budget entries
@@ -112,11 +112,9 @@ budget = pd.concat([budget, new_row], ignore_index=True)
 ## Obtain ICON entries for budget year and comparison year
 
 #%%
-print('icon_refresh = ', icon_refresh)
-
-#%%
 if icon_refresh:
     print()
+    print('icon_refresh = ', icon_refresh)
     print('pull data from Icon')
     actualb, actualc = my.icon(startb, endb, startc, endc, batch)
     # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
@@ -127,6 +125,7 @@ if icon_refresh:
 
 else:
     print()
+    print('icon_refresh = ', icon_refresh)
     print('pull data from saved Icon files')
     actualb = pd.read_csv('tmp/actualb.csv')
     actualc = pd.read_csv('tmp/actualc.csv')
@@ -147,33 +146,30 @@ actualc = actualc.rename(columns={'Account': 'Account_Icon'})
 
 ###############################################################################
 # %% [markdown]
-## READ CHECKING DATA INTO DATAFRAME: checking
-print()
-print("starting to read checking.xlsx")
-checkingfile = os.path.join('input', 'checking.xlsx')
-checking = pd.read_excel(checkingfile)
-print(checking.tail().to_string())
+### READ CHECKING DATA INTO DATAFRAME: checking
+#print()
+#print("starting to read checking.xlsx")
+#checkingfile = os.path.join('input', 'checking.xlsx')
+#checking = pd.read_excel(checkingfile)
+#print(checking.tail().to_string())
 
-#%%
-## income from checking for expenses
-## positive means balance went down because we took money as income from checking
-checking['Account_Icon'] = '0000 Checking Account'
-balance_increase = checking['Balance'] - checking['Balance'].shift(1)
-checking['Amount'] = -balance_increase
-checking['AccountNum'] = '0000'
-checking['Year'] = checking['Date'].dt.year
+### income from checking for expenses
+### positive means balance went down because we took money as income from checking
+#checking['Account_Icon'] = '0000 Checking Account'
+#balance_increase = checking['Balance'] - checking['Balance'].shift(1)
+#checking['Amount'] = -balance_increase
+#checking['AccountNum'] = '0000'
+#checking['Year'] = checking['Date'].dt.year
 
-## extract for each year
-checkingb = checking.loc[checking.Year==startb.year].copy()
-checkingc = checking.loc[checking.Year==startc.year].copy()
-checkingb = checkingb[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
-checkingc = checkingc[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
+### extract for each year
+#checkingb = checking.loc[checking.Year==startb.year].copy()
+#checkingc = checking.loc[checking.Year==startc.year].copy()
+#checkingb = checkingb[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
+#checkingc = checkingc[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 
-
-#%%
-# add to actualb and actualc
-actualb = pd.concat([actualb, checkingb], ignore_index=True)
-actualc = pd.concat([actualc, checkingc], ignore_index=True)
+## add to actualb and actualc
+#actualb = pd.concat([actualb, checkingb], ignore_index=True)
+#actualc = pd.concat([actualc, checkingc], ignore_index=True)
 
 
 #%%
