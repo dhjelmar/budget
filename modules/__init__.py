@@ -19,3 +19,4 @@ from modules.category_table import category_table
 from modules.tableit import tableit
 from modules.inconsistent import inconsistent
 from modules.first import first
+from modules.unique import unique

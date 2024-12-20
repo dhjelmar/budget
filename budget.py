@@ -10,13 +10,15 @@
 ##         (double clicking budget.py in File Explorer does not open Project correctly)
 ##   3. Select "Run Below" in the cell below these instructions
 
-# alternately, create executable with
-#   pyinstaller budget.py --onefile --hidden-import openpyxl.cell._writer
-# in linux, this creates
-#   budget
-# in windows, this creates
-#   budget.exe
-# In windows, can run by double clicking executable in file explorer
+'''
+alternately, create executable with
+   pyinstaller budget.py --onefile --hidden-import openpyxl.cell._writer
+in linux, this creates
+   budget
+in windows, this creates
+   budget.exe
+In windows, can run by double clicking executable in file explorer
+'''
 
 # %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
 # # Budget Vs. Actual Spending
@@ -66,10 +68,10 @@ startb, endb, startc, endc = my.set_dates()
 ## set whether running interactively or batch
 ## batch = False uses getpass() for password which hides password but does not work interactively
 ##       = True uses input() for password which does work interactively
-batch = False
+batch = True
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 
 ###############################################################################
 # %% [markdown]
@@ -227,7 +229,11 @@ first = ['InOrOut', 'L1', 'L2', 'Date', 'Account_Icon', 'Account_Map', 'Amount',
 all = my.first(all, first)
 if not os.path.exists('output'):
         os.mkdir('output')
-all.to_csv(os.path.join('output', 'all.csv'), index=False)
+
+path = os.path.join('output', 'all.csv')
+all.to_csv(path, index=False)
+print(all[first].head().to_string())
+print("find", path)
 
 
 ###############################################################################
@@ -246,9 +252,24 @@ table = my.first(table, first)
 
 table.to_csv(os.path.join('output', 'table.csv'), index=False)
 
-print()
-print("find output/table.csv")
+path = os.path.join('output', 'table.csv')
+table.to_csv(path, index=False)
 print(table[first].head().to_string())
+print("find", path)
+
+
+#%%
+print()
+print("evaluating inconsistencies in account names")
+inconsistencies = my.inconsistent(map, budget, actualb, actualc, 
+                                  startb, endb, startc)
+print(inconsistencies.head().to_string())
+
+path = os.path.join('output', 'inconsistencies.csv')
+inconsistencies.to_csv(path, index=False)
+print()
+print("find", path)
+
 
 
 #%%
@@ -256,17 +277,19 @@ if batch:
     input('Press enter to exit this window')
 
 
+
 #%%
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 '''
 #%%
-inconsistencies = my.inconsistent(map, budget, actualb, actualc, 
-                                  startb, endb, startc)
 
-# %% [markdown]
+#%% [markdown]
 # Create dataframe of table totals
+
+#%%
 table_totals = my.tabletotals(table)
 
 ## table_totals = table_totals.set_index(['InOrOut', 'Category'])  # create multiindex
