@@ -57,6 +57,14 @@ os.getcwd()
 startb, endb, startc, endc = my.set_dates()
 # type(startb)     # datetime.date
 
+# overwrite above
+overwrite_dates = True
+if overwrite_dates:
+    startb = dt.date(2025, 1, 1)
+    endb   = dt.date(2025, 1, 31)
+    startc = dt.date(2024, 1, 1)
+    endc   = dt.date(2024, 12, 31)
+
 ## set layout for plots ('COL' for columns or 'ALT' for alternating plots/tables)
 #layout = 'ALT'
 #print('layout = ', layout)
@@ -71,7 +79,7 @@ startb, endb, startc, endc = my.set_dates()
 batch = True
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 
 ###############################################################################
 # %% [markdown]
@@ -95,9 +103,8 @@ budget = budget.rename(columns={'Account': 'Account_Budget'})
 #%%
 ## filter budget to only requested year then drop the year column
 budget = budget.loc[budget.Year==startb.year].copy()
-budget = budget.drop('Year', axis='columns')
-
 print(budget.head().to_string())
+budget = budget.drop('Year', axis='columns')
 
 #%%
 ## add a budget line for checking account
@@ -240,7 +247,7 @@ print("find", path)
 # %% [markdown]
 ## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
 
-# %%
+#%%
 print()
 print("creating table for budget report")
 table  = my.tableit(map, budget, actualb, actualc, 
@@ -259,6 +266,7 @@ print("find", path)
 
 
 #%%
+# evaluate inconsistencies
 print()
 print("evaluating inconsistencies in account names")
 inconsistencies = my.inconsistent(map, budget, actualb, actualc, 
@@ -292,7 +300,7 @@ if batch:
 #%%
 table_totals = my.tabletotals(table)
 
-## table_totals = table_totals.set_index(['InOrOut', 'Category'])  # create multiindex
+## table_totals = table_totals.set_index(['InOrOut', 'L1'])  # create multiindex
 ## print(table_totals.loc[('Out', 'Adult Ed')])                # print one index combination
 ## table_totals = table_totals.reset_index()                       # re-flatten multiindex
 
