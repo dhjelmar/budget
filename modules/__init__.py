@@ -20,3 +20,4 @@ from modules.tableit import tableit
 from modules.inconsistent import inconsistent
 from modules.first import first
 from modules.unique import unique
+from modules.plot_compare import plot_compare

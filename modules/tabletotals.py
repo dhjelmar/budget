@@ -2,40 +2,42 @@
 def tabletotals(table):
     '''
     Input: Dataframe table with columns: 
-        ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
+        ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
     
-    Output: Dataframe with subtotals and grand total for each 'InOrOut', 'Category', and 'Account'.
+    Output: Dataframe with subtotals and grand total for each 'InOrOut', 'L1', L2', and 'Account'.
     '''
     import pandas as pd
     from modules.highlight import highlight
     ## rename 1st 3 columns from 'InOrOut', 'Category', 'Account' to 'a', 'b', 'c'
     temp = table.copy()
-    temp.columns = ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
-    desc = temp.loc[:, ['a', 'b', 'c', 'SourceOfFunds', 'AccountNum', 'flag']]
-    nums = temp.loc[:, ['a', 'b', 'c', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
+    keep = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
+    temp = temp[keep]
+    temp.columns = ['a', 'b', 'c', 'd', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum', 'flag']
+    desc = temp.loc[:, ['a', 'b', 'c', 'd', 'SourceOfFunds', 'AccountNum', 'flag']]
+    nums = temp.loc[:, ['a', 'b', 'c', 'd', 'Budget', 'YTD', 'Last YTD', 'Current Month']]
 
     ## create multiindex for nums with subtotals then flatten again
     ## the following was copied from online where 'a', 'b', and 'c' were the index columns
     ## not sure how to generalize for other options, so I stuck with using a, b and c
     totals = pd.concat([
         nums.assign(
-            **{x: '_Total' for x in 'abc'[i:]}
-        ).groupby(list('abc')).sum() for i in range(4)
+            **{x: '_Total' for x in 'abcd'[i:]}
+        ).groupby(list('abcd')).sum() for i in range(5)
     ]).sort_index()
     totals = totals.reset_index()
 
     ## combine desc and totals then rename a, b, c
-    table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c'])
+    table_totals = pd.merge(desc, totals, how='right', on=['a', 'b', 'c', 'd'])
 
-    table_totals.columns = ['InOrOut', 'Category', 'Account', 'SourceOfFunds', 'AccountNum', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
+    table_totals.columns = ['InOrOut', 'L1', 'L2', 'Account', 'SourceOfFunds', 'AccountNum', 'flag', 'Budget', 'YTD', 'Last YTD', 'Current Month']
 
     ## move flag to end and drop AccountNum
-    table_totals = table_totals[['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'flag']]
+    table_totals = table_totals[['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'flag']]
 
     ## first highlight various parts
     ## add a flag for changes to category
-    i = table_totals.reset_index().Category                     # first grab index "Category"
-    table_totals['flag'] = list(i.ne(i.shift()).cumsum() % 2)   # add flag=1 when "Category" changes
+    i = table_totals.reset_index().L2                     # first grab index "L2"
+    table_totals['flag'] = list(i.ne(i.shift()).cumsum() % 2)   # add flag=1 when "L2" changes
     table_totals.style.apply(highlight, axis=1)                # highlight rows
 
     ## table_totals = table_totals.set_index(['InOrOut', 'Category'])  # create multiindex

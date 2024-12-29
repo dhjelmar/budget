@@ -58,7 +58,7 @@ startb, endb, startc, endc = my.set_dates()
 # type(startb)     # datetime.date
 
 # overwrite above
-overwrite_dates = True
+overwrite_dates = False
 if overwrite_dates:
     startb = dt.date(2025, 1, 1)
     endb   = dt.date(2025, 1, 31)
@@ -76,7 +76,7 @@ if overwrite_dates:
 ## set whether running interactively or batch
 ## batch = False uses getpass() for password which hides password but does not work interactively
 ##       = True uses input() for password which does work interactively
-batch = True
+batch = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
 icon_refresh = False
@@ -291,7 +291,7 @@ if batch:
 ###############################################################################
 ###############################################################################
 
-'''
+
 #%%
 
 #%% [markdown]
@@ -311,13 +311,14 @@ table_totals = my.tabletotals(table)
 table_totals_summary = table_totals.copy()
 # identify all rows to drop
 mask = ((table_totals.InOrOut  != '_Total') &
-       (table_totals.Category != '_Total') &
+       (table_totals.L1 != '_Total') &
+       (table_totals.L2 != '_Total') &
        (table_totals.Account  == '_Total'))
 # invert mask
 mask = ~mask
 table_totals_summary = table_totals_summary.loc[mask]
 # convert to pivot
-table_totals_summary = table_totals_summary.pivot_table(index=['InOrOut', 'Category'], 
+table_totals_summary = table_totals_summary.pivot_table(index=['InOrOut', 'L1', 'L2'], 
                                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
                                                         aggfunc=np.sum)
 # add percent of budget column
@@ -349,13 +350,14 @@ table_totals_summary.loc[('_Total', '_Total'),'YTD%'] = 'NA'
 # %%
 ## export tables to Excel
 
-## first map InOrOut and Category to actualb and actualc
-actualb_excel, actualb_excel_missing = my.mapit(actualb, map)   # add "InOrOut" and "Category" to actualb
-actualc_excel, actualc_excel_missing = my.mapit(actualc, map)
+actual_reorder = ['InOrOut', 'L1', 'L2', 'Account']
+actualb = my.first(actualb, actual_reorder)
+actualc = my.first(actualc, actual_reorder)
 
 filename = 'budget_report_' + str(endb) + '.xlsx'
-my.write_excel(filename, table, table_totals, table_totals_summary, 
-            actualb_excel, actualc_excel, inconsistencies)
+path = os.path.join('output', filename)
+my.write_excel(path, table, table_totals, table_totals_summary, 
+            actualb, actualc, inconsistencies)
 
 ## actualc had the following incorrect in/out wash entries that need to be deleted
 
@@ -374,6 +376,28 @@ for i in range(len(actualc)):
                                         actualc.loc[i,'Date'].day)
 
 # %%
+
+my.plot_compare('In', 'all', 'all', endb, actualb, actualc_adj, table)
+
+my.plot_compare('Out', 'all', 'all', endb, actualb, actualc_adj, table)
+
+InOrOut = 'Out'
+L1      = 'Education, Music, & Arts'
+L2      = 'Worship & Arts'
+my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table)
+
+
+
+
+#%%
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+
 ## create dataframe of total income and expenses by date for budget, YTD, and prior year
 plot_inout = my.dfplot_inout(map, table, actualb, actualc_adj, 
                              startb, endb, startc, endc)
