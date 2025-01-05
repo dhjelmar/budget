@@ -1,3 +1,5 @@
+import sys
+
 def tableit(map, budget, actualb, actualc, 
             startb, endb, startc):
     '''
@@ -14,7 +16,9 @@ def tableit(map, budget, actualb, actualc,
     ## prior month expenses
     actualbm = dateeom(actualb.copy())
     actualbm = actualbm.loc[actualbm['Date'] == endb]
-    actualbm
+    if len(actualbm) == 0:
+        print('ERROR: There are no entries in the month ending', endb)
+        sys.exit()
 
     # %%
     ## for year to date summations, create new dataframes stripping actualc to same duration as actualb

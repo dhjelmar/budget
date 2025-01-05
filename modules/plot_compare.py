@@ -1,7 +1,7 @@
 import pandas as pd
 import datetime as dt
 
-def xysum(df, InOrOut='all', L1='all', L2='all', x='Date', y='Amount'):
+def select(df, InOrOut='all', L1='all', L2='all'):
     # initialize masks to True
     numdf = len(df)
     mask_InOrOut =[True] * numdf
@@ -17,15 +17,17 @@ def xysum(df, InOrOut='all', L1='all', L2='all', x='Date', y='Amount'):
     # combine masks and apply
     mask = mask_InOrOut * mask_L1 * mask_L2
     df = df[mask].copy()
+    return df
+
+def xysum(df, InOrOut='all', L1='all', L2='all', x='Date', y='Amount'):
+    # select requested rows of df
+    df = select(df, InOrOut, L1, L2)
     # sum 
-    #df = df.pivot_table(index=['InOrOut', x], values=y, aggfunc=np.sum).reset_index()
-    #df = df.pivot_table(index=['InOrOut', 'L1', 'L2', x], values=y, aggfunc=np.sum).reset_index()
     df = df.pivot_table(index=['InOrOut', 'L1', 'L2', x], values=y, aggfunc='sum').reset_index()
     df = df.sort_values('Date')
     df['Amount'] = df.groupby('InOrOut')[y].cumsum()
     df['Legend'] = L1 + '; ' + L2
     return df
-
 
 def plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table):
     dfb_ytd = xysum(actualb    , InOrOut, L1, L2)
@@ -46,3 +48,4 @@ def plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table):
     dfb_budget.loc[0,'Date'] = dt.date(year, 1, 1)
     dfb_budget.loc[0,'Amount'] = 0
     dfb_budget.plot(x='Date', y='Amount', label='budget', ax=ax)
+    return dfb_ytd

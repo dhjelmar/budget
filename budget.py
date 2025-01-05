@@ -60,6 +60,7 @@ startb, endb, startc, endc = my.set_dates()
 # overwrite above
 overwrite_dates = False
 if overwrite_dates:
+    print('overwriting selected dates')
     startb = dt.date(2025, 1, 1)
     endb   = dt.date(2025, 1, 31)
     startc = dt.date(2024, 1, 1)
@@ -80,6 +81,7 @@ batch = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
 icon_refresh = False
+
 
 ###############################################################################
 # %% [markdown]
@@ -375,19 +377,60 @@ for i in range(len(actualc)):
                                         actualc.loc[i,'Date'].month, 
                                         actualc.loc[i,'Date'].day)
 
-# %%
+## identify plots to create
+plots     = [{'InOrOut':'In' , 'L1':'all', 'L2':'all'}]
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'all'})
+#
+plots.append({'InOrOut':'In', 'L1':'Education, Music, & Arts', 'L2':'Tercentenary Fund'})
+plots.append({'InOrOut':'Out', 'L1':'Education, Music, & Arts', 'L2':'all'})
+#
+plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'all'})
+plots.append({'InOrOut':'Out', 'L1':'Mission', 'L2':'all'})
+#plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'Covenant Fund'})
+#plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'UP Mission Fund'})
+#
+plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'all'})
+plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'Contributions - pledge'})
+#
+# committees
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Adult Ed'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Archives'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Care & Support'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Communications'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Finance'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Membership'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Office'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Property'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Worship & Arts'})
+plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Youth Ed'})
+plots.append({'InOrOut':'Out', 'L1':'Personnel', 'L2':'all'})
 
-my.plot_compare('In', 'all', 'all', endb, actualb, actualc_adj, table)
+# create plots
+dfb = []
+plotsum = []
+for myplot in plots:
+    InOrOut = myplot['InOrOut']
+    L1      = myplot['L1']
+    L2      = myplot['L2']
+    dfb_ytd = my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table)
+    dfb.append(dfb_ytd)
 
-my.plot_compare('Out', 'all', 'all', endb, actualb, actualc_adj, table)
 
-InOrOut = 'Out'
-L1      = 'Education, Music, & Arts'
-L2      = 'Worship & Arts'
-my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table)
-
-
-
+#%%
+    '''
+    # match info in plot to info summarized by account in table
+    budget_ytd = dfb_ytd.iloc[-1]['Amount']
+    last_ytd   = dfc_adj.iloc[-1]['Amount']
+    budget     = dfb_budget.iloc[-1]['Amount']
+    plotsum.append({'InOrOut'   : InOrOut,
+                    'L1'        : L1,
+                    'L2'        : L2,
+                    'Budget'    : budget,
+                    'YTD'       : budget_ytd,
+                    'YTD%'      : budget_ytd/budget*100,
+                    'Last YTD'  : last_ytd,
+                    })
+    '''
 
 #%%
 
@@ -399,8 +442,8 @@ my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table)
 #######################################################################
 
 ## create dataframe of total income and expenses by date for budget, YTD, and prior year
-plot_inout = my.dfplot_inout(map, table, actualb, actualc_adj, 
-                             startb, endb, startc, endc)
+#plot_inout = my.dfplot_inout(map, table, actualb, actualc_adj, 
+#                             startb, endb, startc, endc)
 
 # %%
 ## create folder for figures if one does not already exist
@@ -417,13 +460,27 @@ if os.path.exists(path):
     
 os.makedirs(path)
 
+for i in range(0,len(plots)-1):
+    ## https://towardsdatascience.com/make-your-tables-look-glorious-2a5ddbfcc0e5
+    dfi.export(dfb[i], path+'category_'+str(i)+'_table.png', dpi=300)    ## bug does not allow large enough table
+
+layout = 'COL'
+if layout == 'COL':
+    figsize = (6,4)
+else:
+    ## figsize = (11,2)
+    figsize = (11,3)
+
+
+
 # %%
+'''
 ## plot Income
-df = plot_inout.loc[plot_inout['InOrOut'] == 'In']
+f = plot_inout.loc[plot_inout['InOrOut'] == 'In']
 ## following creates solid blue = 'Budget'
 ##                   dotted green = 'Last year'
 ##                   dashed red with "o" marker = 'YTD
-hue_order = ['Budget', 'Last year', 'YTD']
+hue_order = ['Budget', 'Last YTD', 'YTD']
 markers = [',','o','v']    # unclear to me why this should not be [',',',','o']
 palette = ['b', 'g', 'r']
 my.plotit(x='Date', y='Amount', data=df, vline=endb,
@@ -524,6 +581,8 @@ for row in range(len(categories)):
     ## only needed if later using pdf() rather than pdf_txt()
     ## df_category_tab = category_table(inout, category, table, path, fignum=row)
 
+'''
+
 # %%
 ###############################################################################
 # %% [markdown]
@@ -543,4 +602,3 @@ fileout = 'budget_report_' + str(endb) + '.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
 
 # %%
-'''
