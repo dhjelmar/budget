@@ -376,7 +376,7 @@ for i in range(len(actualc)):
     actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
                                         actualc.loc[i,'Date'].month, 
                                         actualc.loc[i,'Date'].day)
-
+#%%
 ## identify plots to create
 plots     = [{'InOrOut':'In' , 'L1':'all', 'L2':'all'}]
 plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'all'})
@@ -393,212 +393,76 @@ plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'all'})
 plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'Contributions - pledge'})
 #
 # committees
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Adult Ed'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Archives'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Care & Support'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Communications'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Finance'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Membership'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Office'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Property'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Worship & Arts'})
-plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'Youth Ed'})
-plots.append({'InOrOut':'Out', 'L1':'Personnel', 'L2':'all'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Adult Ed'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Archives'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Care & Support'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Communications'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Finance'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Membership'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Office'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Property'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Worship & Arts'})
+plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Youth Ed'})
+plots.append({'InOrOut':'Out', 'L1':'Personnel' , 'L2':'all'})
 
+#%%
 # create plots
+## create folder for figures if one does not already exist
+figdir = 'tmp_figures'
+if os.path.exists(figdir):
+    my.rmdir(figdir)
+os.makedirs(figdir)
+
 dfb = []
 plotsum = []
+plotfiles = []
 for myplot in plots:
     InOrOut = myplot['InOrOut']
     L1      = myplot['L1']
     L2      = myplot['L2']
-    dfb_ytd = my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table)
+    filename = figdir + '/' + InOrOut + '_' + L1 + '_' + L2
+    plotfiles.append(filename+'.png')
+    dfb_ytd = my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table, filename)
     dfb.append(dfb_ytd)
 
 
 #%%
-    '''
-    # match info in plot to info summarized by account in table
-    budget_ytd = dfb_ytd.iloc[-1]['Amount']
-    last_ytd   = dfc_adj.iloc[-1]['Amount']
-    budget     = dfb_budget.iloc[-1]['Amount']
-    plotsum.append({'InOrOut'   : InOrOut,
-                    'L1'        : L1,
-                    'L2'        : L2,
-                    'Budget'    : budget,
-                    'YTD'       : budget_ytd,
-                    'YTD%'      : budget_ytd/budget*100,
-                    'Last YTD'  : last_ytd,
-                    })
-    '''
-
-#%%
-
-
-#######################################################################
-#######################################################################
-#######################################################################
-#######################################################################
-#######################################################################
-
-## create dataframe of total income and expenses by date for budget, YTD, and prior year
-#plot_inout = my.dfplot_inout(map, table, actualb, actualc_adj, 
-#                             startb, endb, startc, endc)
-
-# %%
-## create folder for figures if one does not already exist
-path = 'tmp_figures/'
-#if not os.path.exists(path):
-#    ## make the directory if it does not exist
-#    os.makedirs(path)
-#else:
-#    ## clean out the directory if it does exist then make it
-#    my.rmdir(path)
-#    os.makedirs(path)
-if os.path.exists(path):
-    my.rmdir(path)
-    
-os.makedirs(path)
-
-for i in range(0,len(plots)-1):
-    ## https://towardsdatascience.com/make-your-tables-look-glorious-2a5ddbfcc0e5
-    dfi.export(dfb[i], path+'category_'+str(i)+'_table.png', dpi=300)    ## bug does not allow large enough table
-
-layout = 'COL'
-if layout == 'COL':
-    figsize = (6,4)
-else:
-    ## figsize = (11,2)
-    figsize = (11,3)
-
-
-
-# %%
-'''
-## plot Income
-f = plot_inout.loc[plot_inout['InOrOut'] == 'In']
-## following creates solid blue = 'Budget'
-##                   dotted green = 'Last year'
-##                   dashed red with "o" marker = 'YTD
-hue_order = ['Budget', 'Last YTD', 'YTD']
-markers = [',','o','v']    # unclear to me why this should not be [',',',','o']
-palette = ['b', 'g', 'r']
-my.plotit(x='Date', y='Amount', data=df, vline=endb,
-       hue='Legend', hue_order=hue_order, legendloc='best',
-       style='Legend', markers=markers, palette=palette, 
-       errorbar=None, title='Overall Income', filename=path + 'all_income.png')
-
-## plot Expense
-df = plot_inout.loc[plot_inout['InOrOut'] == 'Out']
-my.plotit(x='Date', y='Amount', data=df, vline=endb,
-       hue='Legend', hue_order=hue_order, legendloc='best',
-       style='Legend', markers=markers, palette=palette, 
-       errorbar=None, title='Overall Expenses', filename=path + 'all_expenses.png')
-
-# %%
-## this clears plots from memory (desired)
-## will also keep plots from showing in interactive mode if in same jupyter cell
-plt.close('all')  
-
-###############################################################################
-# %%
-### collect ytdb and ytdc info by date, and in/out and category
-#dfactualb, missingb = my.mapit(actualb, map)   # add "InOrOut" and "Category" to actualb
-#dfactualc, missingc = my.mapit(actualc, map)
-#dfactualb = dfactualb.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
-#dfactualc = dfactualc.groupby(['Date', 'InOrOut', 'Category']).sum().reset_index()
-
-###############################################################################
-# %%
-## Income / Expense Summary Table
+# put summary into png files
 df = table_totals_summary.copy()
 df['Budget'] = df['Budget'].apply(my.dollars.to_str)
-#df.style.format({
-#    # 'var1%': '{:,.2f}'.format,
-#    # 'var2': '{:,.2f}'.format,
-#    'YTD%': '{:,.0%}'.format,
-#})
-# df.style.format({'YTD%': "{:.0%}"})
+# the following works, but my.percent() is better
+#na_mask = df["YTD%"].notnull() & (df['YTD%'] != 'NA')
+#df.loc[na_mask, "YTD%"] = (df.loc[na_mask, "YTD%"]*100).astype('float64').round().astype(int)
 df['YTD%'] = df['YTD%'].apply(my.percent)
 df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
-print(df)
-## https://towardsdatascience.com/make-your-tables-look-glorious-2a5ddbfcc0e5
-dfi.export(df, path+'all_table.png', dpi=300)    ## bug does not allow large enough table
+# table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
+dfi.export(df.iloc[0:13]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[14:32] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[33:100], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+#dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_matplotlib.png', table_conversion='matplotlib', dpi=300)    # bug limits to 25 max lines
+#dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_html2image.png', table_conversion='html2image', dpi=300)    # bug limits to 25 max lines
+#dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_playwright.png', table_conversion='playwright', dpi=300)    # bug limits to 25 max lines
+
+
+#%%
+# put plots into PDF
+date_str =  str(endb.year) + '-' + str(endb.month) + '-' + str(endb.day)
+filename = 'output/budget_report_' + date_str + '.pdf'
+my.pdf(plotfiles, filename, endb, cols=2)
+
+#%%
+# put detailed table into PDF
+
+
+#%%
 
 # %%
-# bug possibly fixed
-#dfi.export(df.loc[('In')], path+'income_table.png', dpi=300)    ## bug does not allow large enough table
-#dfi.export(df.loc[('Out')], path+'expense_table.png', dpi=300)    ## bug does not allow large enough table
-#dfi.export(df.loc[('_Total')], path+'total_table.png', dpi=300)    ## bug does not allow large enough table
-
-
-# %%
-## see ideas here
-## https://stackoverflow.com/questions/35634238/how-to-save-a-pandas-dataframe-table-as-a-png
-
-
-###############################################################################
-# %% [markdown]
-## create plots for each category
-
-# %%
-
-## get list of income and expense categories from budget
-budgettotals = table.pivot_table(index=['InOrOut', 'Category'], 
-                                values=['Budget'], 
-                                aggfunc=np.sum)
-categories = budgettotals.reset_index()
-
-actualb, junk = my.mapit(actualb, map)
-actualc_adj, junk = my.mapit(actualc_adj, map)
-
-# %%
-if layout == 'COL':
-    figsize = (6,4)
-else:
-    ## figsize = (11,2)
-    figsize = (11,3)
-
-# %%
-for row in range(len(categories)):
-    ## row = 5
-    inout = categories.loc[row, 'InOrOut']
-    category = categories.loc[row, 'Category']
-
-    print(' ')
-    print('Starting: ', inout, ' ', category)
-
-    ## create plot and return dataframe used for plot
-    df_category_fig = my.category_plot(inout, category, budgettotals, 
-                                    startb, endb, actualb, actualc_adj, 
-                                    hue_order, markers, palette, 
-                                    path, fignum=row, figsize=figsize)
-    plt.close('all')
-
-    ## create table to print after plot and associated dataframe
-    ## only needed if later using pdf() rather than pdf_txt()
-    ## df_category_tab = category_table(inout, category, table, path, fignum=row)
-
 '''
-
-# %%
-###############################################################################
-# %% [markdown]
-## Create PDF
-
-# %%
-## ## create pdf from pictures of tables
-## from modules.pdf import pdf
-## fileout = 'budget_report_' + str(endb) + '.pdf'
-## pdf(path, fileout, endb, layout)
-
-
-# %%
-## create pdf by writing tables directly so they are searchable
+## create pdf by writing tables directly so they are searchable; this was successful but not currently using it
 from modules.pdf_txt import pdf_txt
-fileout = 'budget_report_' + str(endb) + '.pdf'
+fileout = 'test.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
-
+'''
 # %%

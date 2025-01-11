@@ -21,3 +21,7 @@ from modules.inconsistent import inconsistent
 from modules.first import first
 from modules.unique import unique
 from modules.plot_compare import plot_compare
+from modules.plot_compare import select
+from modules.plot_compare import xycumsum
+from modules.pdf import pdf
+#from modules.pdf_df import dataframe_to_pdf
