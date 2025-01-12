@@ -41,6 +41,7 @@ import calendar
 import dataframe_image as dfi    # had to install with pip
 import jellyfish
 import os
+import sys
 
 ## import my functions
 import modules as my
@@ -73,10 +74,10 @@ if overwrite_dates:
 ## set whether running interactively or batch
 ## batch = False uses getpass() for password which hides password but does not work interactively
 ##       = True uses input() for password which does work interactively
-batch = False
+batch = True
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 
 
 ###############################################################################
@@ -276,6 +277,10 @@ print()
 print("find", path)
 
 
+#%%
+if batch:
+    input('Press enter to exit this window')
+    sys.exit()
 
 #%%
 ###############################################################################
@@ -454,8 +459,3 @@ from modules.pdf_txt import pdf_txt
 fileout = 'test.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
 '''
-
-
-#%%
-if batch:
-    input('Press enter to exit this window')
