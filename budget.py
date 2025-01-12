@@ -66,10 +66,6 @@ if overwrite_dates:
     startc = dt.date(2024, 1, 1)
     endc   = dt.date(2024, 12, 31)
 
-## set layout for plots ('COL' for columns or 'ALT' for alternating plots/tables)
-#layout = 'ALT'
-#print('layout = ', layout)
-
 ## set whether to apply linear adjustments for Covenant, Endowment, UP Fund, Tercentenary income
 #apply_linear_adjustments = True
 #print('apply_linear_adjustments = ', apply_linear_adjustments)
@@ -239,7 +235,7 @@ all = my.first(all, first)
 if not os.path.exists('output'):
         os.mkdir('output')
 
-path = os.path.join('output', 'all.csv')
+path = os.path.join('output', 'budget_report_' + str(endb) + '_dated_entries.csv')
 all.to_csv(path, index=False)
 print(all[first].head().to_string())
 print("find", path)
@@ -257,11 +253,10 @@ table  = my.tableit(map, budget, actualb, actualc,
 
 # reorder
 first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'YTD%', 'Last YTD']
+first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'YTD%', 'YTD', 'Last YTD', 'Current Month']
 table = my.first(table, first)
 
-table.to_csv(os.path.join('output', 'table.csv'), index=False)
-
-path = os.path.join('output', 'table.csv')
+path = os.path.join('output', 'budget_report_' + str(endb) + '_details.csv')
 table.to_csv(path, index=False)
 print(table[first].head().to_string())
 print("find", path)
@@ -275,7 +270,7 @@ inconsistencies = my.inconsistent(map, budget, actualb, actualc,
                                   startb, endb, startc)
 print(inconsistencies.head().to_string())
 
-path = os.path.join('output', 'inconsistencies.csv')
+path = os.path.join('output', 'budget_report_' + str(endb) + '_inconsistencies.csv')
 inconsistencies.to_csv(path, index=False)
 print()
 print("find", path)
@@ -283,18 +278,12 @@ print("find", path)
 
 
 #%%
-if batch:
-    input('Press enter to exit this window')
-
-
-
-#%%
 ###############################################################################
 ###############################################################################
 ###############################################################################
 
-
-#%%
+#%% [markdown]
+## Create tables and plots needed for PDF file report
 
 #%% [markdown]
 # Create dataframe of table totals
@@ -420,9 +409,9 @@ for myplot in plots:
     InOrOut = myplot['InOrOut']
     L1      = myplot['L1']
     L2      = myplot['L2']
-    filename = figdir + '/' + InOrOut + '_' + L1 + '_' + L2
-    plotfiles.append(filename+'.png')
-    dfb_ytd = my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table, filename)
+    path = os.path.join(figdir, InOrOut + '_' + L1 + '_' + L2 + '.png')
+    plotfiles.append(path)
+    dfb_ytd = my.plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table, path)
     dfb.append(dfb_ytd)
 
 
@@ -465,4 +454,8 @@ from modules.pdf_txt import pdf_txt
 fileout = 'test.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
 '''
-# %%
+
+
+#%%
+if batch:
+    input('Press enter to exit this window')

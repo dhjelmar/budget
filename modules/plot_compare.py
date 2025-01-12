@@ -34,7 +34,7 @@ def xycumsum(df, InOrOut='all', L1='all', L2='all', x='Date', y='Amount'):
     df['Legend'] = L1 + '; ' + L2
     return df
 
-def plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table, filename):
+def plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table, path):
     dfb_ytd = xycumsum(actualb    , InOrOut, L1, L2)
     dfc_adj = xycumsum(actualc_adj, InOrOut, L1, L2)
     title = InOrOut + '; ' + L1 + '; ' + L2 + ' as of ' + str(endb)
@@ -53,6 +53,6 @@ def plot_compare(InOrOut, L1, L2, endb, actualb, actualc_adj, table, filename):
     dfb_budget.loc[0,'Date'] = dt.date(year, 1, 1)
     dfb_budget.loc[0,'Budget'] = 0
     dfb_budget.plot(x='Date', y='Budget', label='budget', ax=ax)
-    if filename != None: { plt.savefig(filename) } # this write the figure to file filename
-    plt.figure()                                  # this plots and closes the figure
+    if path != None: { plt.savefig(path) } # this write the figure to file path
+    plt.figure()                           # this plots and closes the figure
     return dfb_ytd
