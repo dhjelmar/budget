@@ -74,10 +74,10 @@ if overwrite_dates:
 ## set whether running interactively or batch
 ## batch = False uses getpass() for password which hides password but does not work interactively
 ##       = True uses input() for password which does work interactively
-batch = True
+batch = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 
 
 ###############################################################################
@@ -432,8 +432,8 @@ df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
 # table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
-dfi.export(df.iloc[0:13]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
-dfi.export(df.iloc[14:32] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[0:14]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[14:33] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 dfi.export(df.iloc[33:100], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_matplotlib.png', table_conversion='matplotlib', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_html2image.png', table_conversion='html2image', dpi=300)    # bug limits to 25 max lines
