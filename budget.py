@@ -41,6 +41,7 @@ import calendar
 import dataframe_image as dfi    # had to install with pip
 import jellyfish
 import os
+import sys
 
 ## import my functions
 import modules as my
@@ -276,6 +277,10 @@ print()
 print("find", path)
 
 
+#%%
+if batch:
+    input('Press enter to exit this window')
+    sys.exit()
 
 #%%
 ###############################################################################
@@ -427,8 +432,8 @@ df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
 # table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
-dfi.export(df.iloc[0:13]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
-dfi.export(df.iloc[14:32] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[0:14]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[14:33] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 dfi.export(df.iloc[33:100], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_matplotlib.png', table_conversion='matplotlib', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_html2image.png', table_conversion='html2image', dpi=300)    # bug limits to 25 max lines
@@ -454,8 +459,3 @@ from modules.pdf_txt import pdf_txt
 fileout = 'test.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
 '''
-
-
-#%%
-if batch:
-    input('Press enter to exit this window')
