@@ -367,9 +367,18 @@ my.write_excel(path, table, table_totals, table_totals_summary,
 ## change year of actualc to budget year for plotting
 actualc_adj = actualc.copy()
 for i in range(len(actualc)):
-    actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
-                                        actualc.loc[i,'Date'].month, 
-                                        actualc.loc[i,'Date'].day)
+    try:
+        actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
+                                            actualc.loc[i,'Date'].month, 
+                                            actualc.loc[i,'Date'].day)
+    except:
+        # above fails if leap year expense on 2/29/endc.year
+        # is mapped to a non-leap year so reduce day by 1 to 
+        # make it a 2/28/endb.year date
+        actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
+                                            actualc.loc[i,'Date'].month, 
+                                            actualc.loc[i,'Date'].day - 1)
+
 #%%
 ## identify plots to create
 plots     = [{'InOrOut':'In' , 'L1':'all', 'L2':'all'}]
@@ -431,6 +440,8 @@ df['YTD%'] = df['YTD%'].apply(my.percent)
 df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
+
+#%%
 # table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
 dfi.export(df.iloc[0:14]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 dfi.export(df.iloc[14:33] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
