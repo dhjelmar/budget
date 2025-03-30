@@ -450,6 +450,8 @@ df['YTD%'] = df['YTD%'].apply(my.percent)
 df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
+
+#%%
 # table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
 dfi.export(df.iloc[0:17]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 dfi.export(df.iloc[17:37] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
