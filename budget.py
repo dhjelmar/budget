@@ -77,7 +77,7 @@ if overwrite_dates:
 batch = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
+icon_refresh = True
 
 
 ###############################################################################
