@@ -58,7 +58,7 @@ os.getcwd()
 startb, endb, startc, endc = my.set_dates()
 # type(startb)     # datetime.date
 
-# overwrite above
+# overwrite above for easier date setting if not running in batch
 overwrite_dates = False
 if overwrite_dates:
     print('overwriting selected dates')
@@ -181,17 +181,20 @@ actualc = actualc.rename(columns={'Account': 'Account_Icon'})
 
 
 #%%
-## add a beginning of year entry for every budget item to actualb
+## add a beginning of year entry for every budget item
+
+# extract budget items
 time0 = budget.copy()
 time0.columns = ['Account_Icon', 'Amount', 'AccountNum']
-time0['Date'] = startb
-time0 = time0[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 time0.Amount = 0
 
-#%%
+# add to actualb
+time0['Date'] = startb
+time0 = time0[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
 actualb = pd.concat([time0, actualb], axis=0)  # rbind; this changed type from Timestamp to datetime.date
 actualb.index = range(len(actualb))            # renumber dataframe
-## do the same for actualc
+
+## add to actualc
 time0['Date'] = startc
 actualc = pd.concat([time0, actualc], axis=0)  # rbind
 actualc.index = range(len(actualc))            # renumber dataframe
@@ -220,22 +223,29 @@ if apply_linear_adjustments == True:
 actualb, missingb = my.mapit(actualb, map)
 actualc, missingc = my.mapit(actualc, map)
 
-#%%
-## combine and write csv file
+#%% [markdown]
+## write csv file with all entries from ICON combined with map info
+
+# dataframe all
 all = pd.concat([actualc, actualb], axis=0)  # rbind
 all = all.rename(columns={'Account': 'Account_Map'})
 all.columns
 all.index = range(0,len(all))
+
+# add a column to help find differences in entries between sources
 similar = []
 for row in range(len(all)):
     a = jellyfish.jaro_similarity(str(all.loc[row,'Account_Icon']), str(all.loc[row,'Account_Map']))
     similar.append(a)
 all['Similarity'] = similar
+
+# reorder dataframe
 first = ['InOrOut', 'L1', 'L2', 'Date', 'Account_Icon', 'Account_Map', 'Amount', 'Similarity']
 all = my.first(all, first)
+
+# write csv file
 if not os.path.exists('output'):
         os.mkdir('output')
-
 path = os.path.join('output', 'budget_report_' + str(endb) + '_dated_entries.csv')
 all.to_csv(path, index=False)
 print(all[first].head().to_string())
@@ -243,8 +253,10 @@ print("find", path)
 
 
 ###############################################################################
+###############################################################################
+###############################################################################
 # %% [markdown]
-## CREATE TABLE DATAFRAME FOR OUTPUT: table, table_totals
+## Create summary table comparing budget and prior year (dataframe table)
 
 #%%
 print()
@@ -288,7 +300,7 @@ if batch:
 ###############################################################################
 
 #%% [markdown]
-## Create tables and plots needed for PDF file report
+## Create table_totals and plots needed for PDF file report
 
 #%% [markdown]
 # Create dataframe of table totals
@@ -367,15 +379,22 @@ my.write_excel(path, table, table_totals, table_totals_summary,
 ## change year of actualc to budget year for plotting
 actualc_adj = actualc.copy()
 for i in range(len(actualc)):
-    actualc_adj.loc[i,'Date'] = dt.date(endb.year, 
-                                        actualc.loc[i,'Date'].month, 
-                                        actualc.loc[i,'Date'].day)
+    if (actualc.loc[i,'Date'].month==2) & (actualc.loc[i,'Date'].day==29):
+        # comparison year expense was on 2/29 in a leap year so move expense to 2/28 in the adjusted non-leap year 
+        actualc_adj.loc[i,'Date'] = dt.date(endb.year, 2, 28)
+    else:
+        # move comparison year expense to same exact day in budget year for plotting purposes
+        actualc_adj.loc[i,'Date'] = dt.date(endb.year, actualc.loc[i,'Date'].month, actualc.loc[i,'Date'].day)
+
 #%%
 ## identify plots to create
+
+# all together
 plots     = [{'InOrOut':'In' , 'L1':'all', 'L2':'all'}]
 plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'all'})
 #
-plots.append({'InOrOut':'In', 'L1':'Education, Music, & Arts', 'L2':'Tercentenary Fund'})
+# Tercentenary Fund and Vespers Offerings
+plots.append({'InOrOut':'In', 'L1':'Education, Music, & Arts', 'L2':'all'})
 plots.append({'InOrOut':'Out', 'L1':'Education, Music, & Arts', 'L2':'all'})
 #
 plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'all'})
@@ -432,9 +451,9 @@ df['YTD'] = df['YTD'].apply(my.dollars.to_str)
 df['Last YTD'] = df['Last YTD'].apply(my.dollars.to_str)
 df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
 # table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
-dfi.export(df.iloc[0:14]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
-dfi.export(df.iloc[14:33] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
-dfi.export(df.iloc[33:100], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[0:17]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[17:37] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[37:100], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_matplotlib.png', table_conversion='matplotlib', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_html2image.png', table_conversion='html2image', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_playwright.png', table_conversion='playwright', dpi=300)    # bug limits to 25 max lines
@@ -444,7 +463,7 @@ dfi.export(df.iloc[33:100], figdir + '/' + 'table_totals_summary_chrome3.png', t
 # put plots into PDF
 date_str =  str(endb.year) + '-' + str(endb.month) + '-' + str(endb.day)
 filename = 'output/budget_report_' + date_str + '.pdf'
-my.pdf(plotfiles, filename, endb, cols=2)
+my.pdf(plotfiles, filename, endb, cols=2, adjust=0.99)
 
 #%%
 # put detailed table into PDF

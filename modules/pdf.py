@@ -1,28 +1,27 @@
-def pdf(plotfiles, fileout, endb, cols):
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import re
+from fpdf import FPDF
+import modules.fpdfx as fpdfx
+from PIL import Image
+import dataframe_image as dfi   # had to install with pip
+import datetime as dt
+from modules.imagefit import imagefit
+
+def pdf(plotfiles, fileout, endb, cols, adjust=1):
     '''
     Input: pngfiles = List of plot files
-                      1st 2 are on 1st page along wiht summary table
-                      remaining are 2 next to eachother with 6/page
            fileout  = output filename
            endb     = date for use in 1st page
+           cols     = number of columns for plots
+           adjust   = 1 (default) multiplier on scaled table heights
+                      if scaling not keeping all on same page
     Output: PDF file
 
     https://pyfpdf.readthedocs.io/en/latest/reference/image/index.html
     '''
-    
-    # %%
-    import os
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    import re
-    from fpdf import FPDF
-    import modules.fpdfx as fpdfx
-    from PIL import Image
-    import dataframe_image as dfi   # had to install with pip
-    import datetime as dt
-    from modules.imagefit import imagefit
-
     
     #############################################################################
     # %%
@@ -135,7 +134,7 @@ def pdf(plotfiles, fileout, endb, cols):
     print('img1.width=', img1.width)
     print('img2.width=', img2.width)
     print('img3.width=', img3.width)
-    # surprisingly, all 3 tables are nto the same width
+    # surprisingly, all 3 tables are not the same width
     # that will complicate scaling
 
     # first determine scale needed to make the same width
@@ -162,7 +161,7 @@ def pdf(plotfiles, fileout, endb, cols):
  
     # now scale total height to fit on page
     remaining_height = HEIGHT - current_y - MARGIN
-    print('tableh          =', tableh)
+    print('tableh + slop   =', tableh)
     print('remaining_height=', remaining_height)
     scale2height = remaining_height / tableh
 
@@ -181,18 +180,21 @@ def pdf(plotfiles, fileout, endb, cols):
     print('img1.width=', plotw1)
     print('img2.width=', plotw2)
     print('img3.width=', plotw3)
+    tableh = ploth1 + ploth2 + ploth3
+    print('scaled tableh =', tableh)
     # not sure why this does not work right so added adjust factor to manually scale
-    adjust = 1
     #pdf.image(table1, x=MARGIN, h=ploth1 * adjust)   
     #pdf.image(table2, x=MARGIN, h=ploth2 * adjust)
     #pdf.image(table3, x=MARGIN, h=ploth3 * adjust)
     pdf.image(table1, x=WIDTH/2 - plotw1/2, h=ploth1 * adjust)   
     pdf.image(table2, x=WIDTH/2 - plotw2/2, h=ploth2 * adjust)
     pdf.image(table3, x=WIDTH/2 - plotw3/2, h=ploth3 * adjust)
+    tableh = adjust * tableh
 
     # adding image does not seem to update y
-    pdf.set_y(current_y + ploth1 + ploth2 + ploth3) 
+    pdf.set_y(current_y + tableh) 
     current_y = FPDF.get_y(pdf)
+    print('adjusted scaled tableh =', tableh)
     print('current_y after add in/out table', current_y)
     print('total page height =', HEIGHT)
 
