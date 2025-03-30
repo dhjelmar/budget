@@ -77,7 +77,7 @@ if overwrite_dates:
 batch = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = True
+icon_refresh = False
 
 
 ###############################################################################
@@ -480,3 +480,26 @@ from modules.pdf_txt import pdf_txt
 fileout = 'test.pdf'
 pdf_txt(path, fileout, endb, layout, categories, table)
 '''
+
+
+#%% [markdown]
+## Experiments with better way to print df to pdf
+
+# Function to format as currency
+def format_currency(value):
+    return '${:,.0f}'.format(value)
+# Function to format as %
+def format_percent(value):
+    if value=='NA':
+        value=0
+    return '{:,.2%}'.format(value)
+
+# Format col1 to 2 decimal places
+# Format col3 with commas as thousands separators
+formatters = {
+    'Budget': format_currency,
+    'YTD%': format_percent,
+    'YTD': format_currency,
+    'Last YTD': format_currency,
+    'Current Month': format_currency}
+table_totals_summary.to_html('table_totals_summary.html', formatters=formatters)
