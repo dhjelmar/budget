@@ -94,6 +94,8 @@ print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 ###############################################################################
 # %% [markdown]
 ## READ BUDGET DATA INTO DATAFRAME: budget
+
+#%%
 print()
 print("starting to read budget.xlsx")
 budget, budget_duplicates = my.read_budget(startb.year)
@@ -155,6 +157,8 @@ actualc = actualc.rename(columns={'Account': 'Account_Icon'})
 ###############################################################################
 # %% [markdown]
 ### READ CHECKING DATA INTO DATAFRAME: checking
+
+#%%
 #print()
 #print("starting to read checking.xlsx")
 #checkingfile = os.path.join('input', 'checking.xlsx')
