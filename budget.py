@@ -79,6 +79,10 @@ batch = False
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
 icon_refresh = False
 
+# set levels for pivot table and plots
+levels = ['InOrOut', 'L1', 'L2']
+levels = ['InOrOut', 'L1']
+
 
 ###############################################################################
 # %% [markdown]
@@ -326,11 +330,22 @@ mask = ((table_totals.InOrOut  != '_Total') &
        (table_totals.L1 != '_Total') &
        (table_totals.L2 != '_Total') &
        (table_totals.Account  == '_Total'))
+# mask = ((table_totals.L1 == '_Total') & (table_totals.L2 == '_Total')) | \
+#        (table_totals.Account  == '_Total')
+# mask = ((table_totals.L1 != '_Total') & (table_totals.L2 == '_Total')) | \
+#        (table_totals.Account  == '_Total')
 # invert mask
 mask = ~mask
 table_totals_summary = table_totals_summary.loc[mask]
+
+mask = ((table_totals.InOrOut  != '_Total') &
+       (table_totals.L1 != '_Total') &
+       (table_totals.L2 == '_Total') &
+       (table_totals.Account  == '_Total'))
+table_totals_summary = table_totals_summary.loc[~mask]
+
 # convert to pivot
-table_totals_summary = table_totals_summary.pivot_table(index=['InOrOut', 'L1', 'L2'], 
+table_totals_summary = table_totals_summary.pivot_table(index=levels, 
                                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
                                                         aggfunc=np.sum)
 # add percent of budget column
@@ -346,7 +361,9 @@ table_totals_summary.loc[('_Total', '_Total'),'YTD%'] = 'NA'
 #table_totals_summary_print['YTD'] = my.table_totals_summary_print['YTD'].apply(my.dollars.to_str)
 #table_totals_summary_print['Last YTD'] = table_totals_summary_print['Last YTD'].apply(my.dollars.to_str)
 #print(table_totals_summary_print)
-   
+
+table_totals_summary.iloc[0:99]
+
 
 # %%
 ## test error with table_totals_summary
@@ -397,30 +414,37 @@ for i in range(len(actualc)):
 plots     = [{'InOrOut':'In' , 'L1':'all', 'L2':'all'}]
 plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'all'})
 #
-# Tercentenary Fund and Vespers Offerings
-plots.append({'InOrOut':'In', 'L1':'Education, Music, & Arts', 'L2':'all'})
-plots.append({'InOrOut':'Out', 'L1':'Education, Music, & Arts', 'L2':'all'})
-#
-plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'all'})
-plots.append({'InOrOut':'Out', 'L1':'Mission', 'L2':'all'})
-#plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'Covenant Fund'})
-#plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'UP Mission Fund'})
-#
-plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'all'})
-plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'Contributions - pledge'})
-#
-# committees
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Adult Ed'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Archives'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Care & Support'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Communications'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Finance'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Membership'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Office'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Property'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Worship & Arts'})
-plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Youth Ed'})
-plots.append({'InOrOut':'Out', 'L1':'Personnel' , 'L2':'all'})
+# # Tercentenary Fund and Vespers Offerings
+# plots.append({'InOrOut':'In', 'L1':'Education, Music, & Arts', 'L2':'all'})
+# plots.append({'InOrOut':'Out', 'L1':'Education, Music, & Arts', 'L2':'all'})
+# #
+# plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'all'})
+# plots.append({'InOrOut':'Out', 'L1':'Mission', 'L2':'all'})
+# #plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'Covenant Fund'})
+# #plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'UP Mission Fund'})
+# #
+# plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'all'})
+# plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'Contributions - pledge'})
+# #
+# # committees
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Adult Ed'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Archives'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Care & Support'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Communications'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Finance'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Membership'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Office'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Property'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Worship & Arts'})
+# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Youth Ed'})
+# plots.append({'InOrOut':'Out', 'L1':'Personnel' , 'L2':'all'})
+
+# new greensheet with personnel separate out
+for committee in my.unique(table.loc[table.InOrOut=='In'].L1):
+    plots.append({'InOrOut':'In', 'L1':committee, 'L2':'all'})
+for committee in my.unique(table.loc[table.InOrOut=='Out'].L1):
+    plots.append({'InOrOut':'Out', 'L1':committee, 'L2':'all'})
+
 
 #%%
 # create plots
@@ -457,9 +481,11 @@ df['Current Month'] = df['Current Month'].apply(my.dollars.to_str)
 
 #%%
 # table_conversion='chrome' will currently only handle tables up to 25 rows long; none of the other options are better
-dfi.export(df.iloc[0:17]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
-dfi.export(df.iloc[17:37] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
-dfi.export(df.iloc[37:100], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+dfi.export(df.iloc[0:25]  , figdir + '/' + 'table_totals_summary_chrome1.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+if len(df) > 26:
+    dfi.export(df.iloc[26:50] , figdir + '/' + 'table_totals_summary_chrome2.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
+if len(df) > 50:
+    dfi.export(df.iloc[50:75], figdir + '/' + 'table_totals_summary_chrome3.png', table_conversion='chrome', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_matplotlib.png', table_conversion='matplotlib', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_html2image.png', table_conversion='html2image', dpi=300)    # bug limits to 25 max lines
 #dfi.export(table_totals_summary, figdir + '/' + 'table_totals_summary_playwright.png', table_conversion='playwright', dpi=300)    # bug limits to 25 max lines
@@ -507,3 +533,7 @@ formatters = {
     'Last YTD': format_currency,
     'Current Month': format_currency}
 table_totals_summary.to_html('table_totals_summary.html', formatters=formatters)
+
+
+# %%
+

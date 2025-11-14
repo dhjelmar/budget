@@ -9,6 +9,7 @@ from PIL import Image
 import dataframe_image as dfi   # had to install with pip
 import datetime as dt
 from modules.imagefit import imagefit
+from modules.percent import percent
 
 def pdf(plotfiles, fileout, endb, cols, adjust=1):
     '''
@@ -88,8 +89,14 @@ def pdf(plotfiles, fileout, endb, cols, adjust=1):
     fpdfx.write2pdf(pdf, TITLE, family='Helvetica', style='B', fs=20, th=None, w=0, align='L', ln=1)
 
     ## add today
+    ytd_percent = (endb-dt.date(endb.year-1, 12, 31))/dt.timedelta(365,0,0,0)
+    ytd_percent = percent(ytd_percent, decimals=0)
     today = str(dt.date.today())                   # YYYY-MM-DD
-    fpdfx.write2pdf(pdf, 'Report date: '+today, family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
+    # fpdfx.write2pdf(pdf, 'Report date: '+today, family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
+    #                 r=128, g=128, b=128)
+    fpdfx.write2pdf(pdf, 
+                    ytd_percent + ' through the year; Report generated on ' + today,
+                    family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
                     r=128, g=128, b=128)
 
     ## get current y location
@@ -115,88 +122,141 @@ def pdf(plotfiles, fileout, endb, cols, adjust=1):
     current_y = FPDF.get_y(pdf)
     print('before print tables: current_y=',current_y)
 
-    # get image heights for all 3 parts of the table to figure out sizing
-    table1 = 'tmp_figures/table_totals_summary_chrome1.png'
-    table2 = 'tmp_figures/table_totals_summary_chrome2.png'
-    table3 = 'tmp_figures/table_totals_summary_chrome3.png'
-    img1 = Image.open(table1)
-    img2 = Image.open(table2)
-    img3 = Image.open(table3)
-    #tablew = pil2mm(img1.width)
-    #table1h = pil2mm(img1.height)
-    #table2h = pil2mm(Image.open(table1).height)
-    #table3h = pil2mm(Image.open(table1).height)
-    print()
-    print('tables before scaling')
-    print('img1.height=', img1.height)
-    print('img2.height=', img2.height)
-    print('img3.height=', img3.height)
-    print('img1.width=', img1.width)
-    print('img2.width=', img2.width)
-    print('img3.width=', img3.width)
-    # surprisingly, all 3 tables are not the same width
-    # that will complicate scaling
+    number_of_tables = 1
+    if number_of_tables == 1:
+        # get image dimensions to figure out sizing
+        table1 = 'tmp_figures/table_totals_summary_chrome1.png'
 
-    # first determine scale needed to make the same width
-    scalew1 = printablew / img1.width
-    scalew2 = printablew / img2.width
-    scalew3 = printablew / img3.width
+        # add some whitespace
+        pdf.ln(th)
 
-    # next apply that to heights
-    ploth1 = img1.height * scalew1
-    ploth2 = img2.height * scalew2
-    ploth3 = img3.height * scalew3
-    plotw1 = img1.width  * scalew1
-    plotw2 = img2.width  * scalew2
-    plotw3 = img3.width  * scalew3
-    print()
-    print('tables after first scaling to get same widths')
-    print('ploth1=', ploth1)
-    print('ploth2=', ploth2)
-    print('ploth3=', ploth3)
-    print('plotw1=', plotw1)
-    print('plotw2=', plotw2)
-    print('plotw3=', plotw3)
-    tableh = ploth1 + ploth2 + ploth3 + th    # th for slop
- 
-    # now scale total height to fit on page
-    remaining_height = HEIGHT - current_y - MARGIN
-    print('tableh + slop   =', tableh)
-    print('remaining_height=', remaining_height)
-    scale2height = remaining_height / tableh
+        # print table to pdf
+        pdf.image(table1, w=printablew)
 
-    #pdf.image(path+"all_table.png", x=MARGIN, h=TABLEH)
-    ploth1 = img1.height * scalew1 * scale2height
-    ploth2 = img2.height * scalew2 * scale2height
-    ploth3 = img3.height * scalew3 * scale2height
-    plotw1 = img1.width  * scalew1 * scale2height
-    plotw2 = img2.width  * scalew2 * scale2height
-    plotw3 = img3.width  * scalew3 * scale2height
-    print()
-    print('tables after second scaling')
-    print('img1.height=', ploth1)
-    print('img2.height=', ploth2)
-    print('img3.height=', ploth3)
-    print('img1.width=', plotw1)
-    print('img2.width=', plotw2)
-    print('img3.width=', plotw3)
-    tableh = ploth1 + ploth2 + ploth3
-    print('scaled tableh =', tableh)
-    # not sure why this does not work right so added adjust factor to manually scale
-    #pdf.image(table1, x=MARGIN, h=ploth1 * adjust)   
-    #pdf.image(table2, x=MARGIN, h=ploth2 * adjust)
-    #pdf.image(table3, x=MARGIN, h=ploth3 * adjust)
-    pdf.image(table1, x=WIDTH/2 - plotw1/2, h=ploth1 * adjust)   
-    pdf.image(table2, x=WIDTH/2 - plotw2/2, h=ploth2 * adjust)
-    pdf.image(table3, x=WIDTH/2 - plotw3/2, h=ploth3 * adjust)
-    tableh = adjust * tableh
 
-    # adding image does not seem to update y
-    pdf.set_y(current_y + tableh) 
-    current_y = FPDF.get_y(pdf)
-    print('adjusted scaled tableh =', tableh)
-    print('current_y after add in/out table', current_y)
-    print('total page height =', HEIGHT)
+        # img1 = Image.open(table1)
+        # tablew = pil2mm(img1.width)
+        # table1h = pil2mm(img1.height)
+        # print()
+        # print('tables before scaling')
+        # print('img1.height=', img1.height)
+        # print('img1.width=', img1.width)
+
+        # # first determine scale needed to make the same width
+        # scalew1 = printablew / img1.width
+
+        # # next apply that to heights
+        # ploth1 = img1.height * scalew1
+        # plotw1 = img1.width  * scalew1
+        # print()
+        # print('tables after first scaling to get same widths')
+        # print('ploth1=', ploth1)
+        # print('plotw1=', plotw1)
+        # tableh = ploth1 + th
+    
+        # # now scale total height to fit on page
+        # remaining_height = HEIGHT - current_y - MARGIN
+        # print('tableh + slop   =', tableh)
+        # print('remaining_height=', remaining_height)
+        # scale2height = remaining_height / tableh
+
+        # #pdf.image(path+"all_table.png", x=MARGIN, h=TABLEH)
+        # ploth1 = img1.height * scalew1 * scale2height
+        # plotw1 = img1.width  * scalew1 * scale2height
+        # print()
+        # print('tables after second scaling')
+        # print('img1.height=', ploth1)
+        # print('img1.width=', plotw1)
+        # tableh = ploth1
+        # print('scaled tableh =', tableh)
+        # # not sure why this does not work right so added adjust factor to manually scale
+        # #pdf.image(table1, x=MARGIN, h=ploth1 * adjust)   
+        # pdf.image(table1, x=WIDTH/2 - plotw1/2, h=ploth1 * adjust)   
+        # tableh = adjust * tableh
+
+    elif number_of_tables == 3:
+        # get image heights for all 3 parts of the table to figure out sizing
+        table1 = 'tmp_figures/table_totals_summary_chrome1.png'
+        table2 = 'tmp_figures/table_totals_summary_chrome2.png'
+        table3 = 'tmp_figures/table_totals_summary_chrome3.png'
+        img1 = Image.open(table1)
+        img2 = Image.open(table2)
+        img3 = Image.open(table3)
+        #tablew = pil2mm(img1.width)
+        #table1h = pil2mm(img1.height)
+        #table2h = pil2mm(Image.open(table1).height)
+        #table3h = pil2mm(Image.open(table1).height)
+        print()
+        print('tables before scaling')
+        print('img1.height=', img1.height)
+        print('img2.height=', img2.height)
+        print('img3.height=', img3.height)
+        print('img1.width=', img1.width)
+        print('img2.width=', img2.width)
+        print('img3.width=', img3.width)
+        # surprisingly, all 3 tables are not the same width
+        # that will complicate scaling
+
+        # first determine scale needed to make the same width
+        scalew1 = printablew / img1.width
+        scalew2 = printablew / img2.width
+        scalew3 = printablew / img3.width
+
+        # next apply that to heights
+        ploth1 = img1.height * scalew1
+        ploth2 = img2.height * scalew2
+        ploth3 = img3.height * scalew3
+        plotw1 = img1.width  * scalew1
+        plotw2 = img2.width  * scalew2
+        plotw3 = img3.width  * scalew3
+        print()
+        print('tables after first scaling to get same widths')
+        print('ploth1=', ploth1)
+        print('ploth2=', ploth2)
+        print('ploth3=', ploth3)
+        print('plotw1=', plotw1)
+        print('plotw2=', plotw2)
+        print('plotw3=', plotw3)
+        tableh = ploth1 + ploth2 + ploth3 + th    # th for slop
+    
+        # now scale total height to fit on page
+        remaining_height = HEIGHT - current_y - MARGIN
+        print('tableh + slop   =', tableh)
+        print('remaining_height=', remaining_height)
+        scale2height = remaining_height / tableh
+
+        #pdf.image(path+"all_table.png", x=MARGIN, h=TABLEH)
+        ploth1 = img1.height * scalew1 * scale2height
+        ploth2 = img2.height * scalew2 * scale2height
+        ploth3 = img3.height * scalew3 * scale2height
+        plotw1 = img1.width  * scalew1 * scale2height
+        plotw2 = img2.width  * scalew2 * scale2height
+        plotw3 = img3.width  * scalew3 * scale2height
+        print()
+        print('tables after second scaling')
+        print('img1.height=', ploth1)
+        print('img2.height=', ploth2)
+        print('img3.height=', ploth3)
+        print('img1.width=', plotw1)
+        print('img2.width=', plotw2)
+        print('img3.width=', plotw3)
+        tableh = ploth1 + ploth2 + ploth3
+        print('scaled tableh =', tableh)
+        # not sure why this does not work right so added adjust factor to manually scale
+        #pdf.image(table1, x=MARGIN, h=ploth1 * adjust)   
+        #pdf.image(table2, x=MARGIN, h=ploth2 * adjust)
+        #pdf.image(table3, x=MARGIN, h=ploth3 * adjust)
+        pdf.image(table1, x=WIDTH/2 - plotw1/2, h=ploth1 * adjust)   
+        pdf.image(table2, x=WIDTH/2 - plotw2/2, h=ploth2 * adjust)
+        pdf.image(table3, x=WIDTH/2 - plotw3/2, h=ploth3 * adjust)
+        tableh = adjust * tableh
+
+        # adding image does not seem to update y
+        pdf.set_y(current_y + tableh) 
+        current_y = FPDF.get_y(pdf)
+        print('adjusted scaled tableh =', tableh)
+        print('current_y after add in/out table', current_y)
+        print('total page height =', HEIGHT)
 
 
     #############################################################################
