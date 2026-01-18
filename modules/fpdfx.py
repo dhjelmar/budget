@@ -1,3 +1,8 @@
+import datetime as dt
+from fpdf import FPDF
+import modules.fpdfx as fpdfx
+
+
 def df2pdf(pdf, df, cellw=None):
     '''
     ## https://www.justintodata.com/generate-reports-with-python/
@@ -84,7 +89,6 @@ def create_title(pdf, title, titleh, th):
     titleh is the title height
     th is the text height for a single line (not the title)
     '''
-    import datetime as dt
 
     # Add main title
     pdf.set_font('Helvetica', 'b', 20)  
@@ -142,7 +146,6 @@ def write2pdf(pdf, txt, family='Helvetica', style='', fs=None, th=None, w=0, ali
     g      = green
     b      = blue
     '''
-    from fpdf import FPDF
 
     ## conversion
     th2fs = 10/25   # th / fs = ratio of text height to font size
@@ -163,8 +166,6 @@ def write2pdf(pdf, txt, family='Helvetica', style='', fs=None, th=None, w=0, ali
 
 
 def pdftest():
-    from fpdf import FPDF
-    import modules.fpdfx as fpdfx
     pdf = FPDF() # A4 (210 x 297 mm which is 8.3 x 11.7 inches)
     pdf.set_margins(left=10, top=15, right=10)
     th = pdf.font_size_pt
@@ -199,7 +200,6 @@ def pdftest():
     pdf.output('test.pdf', 'F')
 
 
-from fpdf import FPDF
 class PDF(FPDF):
     '''
     Extends FPDF class to modify the footer function in the FPDF library

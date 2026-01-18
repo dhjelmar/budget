@@ -1,3 +1,5 @@
+import sys
+
 def tableit(map, budget, actualb, actualc, 
             startb, endb, startc):
     '''
@@ -9,11 +11,14 @@ def tableit(map, budget, actualb, actualc,
     from modules.dateeom import dateeom
     from modules.linearadj import linearadj
     from modules.highlight import highlight
+    from modules.first import first
 
     ## prior month expenses
     actualbm = dateeom(actualb.copy())
     actualbm = actualbm.loc[actualbm['Date'] == endb]
-    actualbm
+    if len(actualbm) == 0:
+        print('ERROR: There are no entries in the month ending', endb)
+        sys.exit()
 
     # %%
     ## for year to date summations, create new dataframes stripping actualc to same duration as actualb
@@ -23,11 +28,11 @@ def tableit(map, budget, actualb, actualc,
 
     # %%
     ## use pivot table to sum ytd and current month totals
-    ytdb = ytdb.pivot_table(index=['AccountNum'], values='Amount', aggfunc=np.sum).reset_index()
+    ytdb = ytdb.pivot_table(index=['AccountNum'], values='Amount', aggfunc="sum").reset_index()
     ytdb.columns = ['AccountNum', 'YTD']
-    ytdc = ytdc.pivot_table(index=['AccountNum'], values='Amount', aggfunc=np.sum).reset_index()
+    ytdc = ytdc.pivot_table(index=['AccountNum'], values='Amount', aggfunc="sum").reset_index()
     ytdc.columns = ['AccountNum', 'Last YTD']
-    actualbm = actualbm.pivot_table(index=['AccountNum'], values='Amount', aggfunc=np.sum).reset_index()
+    actualbm = actualbm.pivot_table(index=['AccountNum'], values='Amount', aggfunc="sum").reset_index()
     actualbm.columns = ['AccountNum', 'Current Month']
     # temp.loc[temp.AccountNum == '4044']
 
@@ -44,12 +49,13 @@ def tableit(map, budget, actualb, actualc,
     all.index = range(len(all))
 
     # %%
-    ## left join with mapit
+    ## left join with mapit because pivot_table removed the mapping when applied to actualb and actualc
     all, missing = mapit(all, map)
-
+    
     # %%
     ## select columns to keep
-    table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
+    ##table = all.loc[:, ['InOrOut', 'Category', 'Account', 'Budget', 'YTD', 'Last YTD', 'Current Month', 'SourceOfFunds', 'AccountNum']].copy()
+    table = all
 
     # %%
     ## eliminate any rows in table where all entries are $0
@@ -59,22 +65,20 @@ def tableit(map, budget, actualb, actualc,
     table.index = range(len(table))
 
     # %%
-    '''
     ## add column for YTD percent
     table['YTD%'] = table['YTD'] / table['Budget'] * 100
     ## replace nan, inf, and -inf with 999
-    table['YTD%'] = table['YTD%'].replace([np.nan, np.inf, -np.inf], 999, inplace=True)
+    table['YTD%'] = table['YTD%'].replace([np.nan, np.inf, -np.inf], 999)
     ## round to integer
     table['YTD%'] = table['YTD%'].round(0).astype(int)
     ## replace 999 with inf
-    table['YTD%'] = table['YTD%'].replace([999], np.inf, inplace=True)
-    '''
+    table['YTD%'] = table['YTD%'].replace([999], np.inf)
 
     # %%
     ## sort table and add a flag for changes to category
     ##table = table.sort_values(by = ['Account', 'Category', 'InOrOut'], ascending=True, na_position='last')
-    table = table.sort_values(by = ['InOrOut', 'Category', 'Account'], ascending=True, na_position='last')
-    i = table.Category    
+    table = table.sort_values(by = ['InOrOut', 'L1', 'L2', 'Account'], ascending=True, na_position='last')
+    i = table.L2    
     table['flag'] = i.ne(i.shift()).cumsum() % 2
     table.style.apply(highlight, axis=1)
 

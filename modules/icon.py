@@ -1,4 +1,6 @@
-def icon(startb, endb, startc, endc):
+from getpass4 import getpass
+
+def icon(startb, endb, startc, endc, batch):
     '''
     Import following from IconCMO: Accounts
                                    Register entries between startb and endb
@@ -47,8 +49,12 @@ def icon(startb, endb, startc, endc):
     phonenumber = "5183772201"
     ## if ('username' not in locals()) | ('password' not in locals()):
     if (username == "") | (password == ""):
-        username = input("Input ICON user name:")
-        password = input("Input ICON password:")
+        print()
+        username = input("Enter ICON user name:")
+        if batch:
+            password = getpass(prompt='Enter ICON password: ')
+        else:
+            password = input("Enter ICON password:")
 
     # %%
     ## issue request through api
@@ -164,10 +170,9 @@ def icon(startb, endb, startc, endc):
     df2 = pd.DataFrame(list2)
     df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
-
-    ## convert dates to datetime
-    df1.Date = pd.to_datetime(df1.Date)
-    df2.Date = pd.to_datetime(df2.Date)
+    ## convert dates from str to datetime to date
+    df1.Date = pd.to_datetime(df1.Date).dt.date 
+    df2.Date = pd.to_datetime(df2.Date).dt.date 
     
     ## drop 'Account Type' column (i.e., whether "Revenues" or "Expenditures")
     df1 = df1.drop(columns=['Account Type'])
@@ -176,10 +181,10 @@ def icon(startb, endb, startc, endc):
     ## add AccountNum column
     df1['Account'] = df1['Account'].str.strip()    # strip leading and trailing white space
     ## create another column with budget line item number only because database not consistent with descriptions
-    df1['AccountNum'] = df1.Account.str.extract('(\d+)')
+    #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
     df2['Account'] = df2['Account'].str.strip()    # strip leading and trailing white space
     ## create another column with budget line item number only because database not consistent with descriptions
-    df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+    #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
 
     ## convert Ammount from string to number
     df1['Amount'] = df1['Amount'].apply(dollars.to_num)
@@ -190,9 +195,10 @@ def icon(startb, endb, startc, endc):
     df2['Account'] = df2['Account'].str.strip()
 
     ## extract account numbers to separate variable
-    df1['AccountNum'] = df1.Account.str.extract('(\d+)')
-    df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+    #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
+    #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
 
+    print()
     print('budget year entries in dataframe, actualb_read:')
     print(df2)
     print()

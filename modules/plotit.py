@@ -1,3 +1,4 @@
+#%%
 def plotit(x, y, data, vline, hue=None, hue_order=None, legendloc='best',
            style=None, markers=None, palette=None, errorbar=None, 
            title=None, filename=None, figsize=(6,4), xlim=None, ylim=None):
@@ -52,7 +53,7 @@ def plotit(x, y, data, vline, hue=None, hue_order=None, legendloc='best',
     ## but it also keeps the plot from printing to interactive screen
     ## plt.close('all')
 
-
+#%%
 def plotit_test():
     import pandas as pd
     from modules.plotit import plotit
@@ -68,8 +69,10 @@ def plotit_test():
     #import seaborn as sns
     #sns.lineplot(x='col1', y='col2', data=df, 
     #             hue='label', style='label', markers=[",","o"])
+    return df
 
-# plotit_test()
+#plotit_test()
+#%%
 
 def plotcsv(InOrOut, Category, csv=None, df=None, figsize=(6,4)):
     import pandas as pd

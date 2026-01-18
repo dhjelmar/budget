@@ -9,10 +9,13 @@ dependencies:
    - numpy
    - regex
    - jellyfish
-   - pytesseract
+   #- pytesseract
    - ipykernel
    - openpyxl
+   - pyinstaller
    - pip
    - pip:
       - dataframe_image
       - ocrmypdf
+      - fpdf
+      - getpass4

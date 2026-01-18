@@ -20,7 +20,7 @@ def to_num(x):
     import regex as re
     #from decimal import Decimal
     #return Decimal(re.sub(r'[^\d\-.]', '', x))
-    num = float(re.sub('[$]', '', x))
+    num = float(re.sub('[$|,]', '', x))
     return num
 
 

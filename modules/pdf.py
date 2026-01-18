@@ -1,50 +1,49 @@
-def pdf(path, fileout, endb, layout):
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import re
+from fpdf import FPDF
+import modules.fpdfx as fpdfx
+from PIL import Image
+import dataframe_image as dfi   # had to install with pip
+import datetime as dt
+from modules.imagefit import imagefit
+from modules.percent import percent
+
+def pdf(plotfiles, fileout, endb, cols, adjust=1):
     '''
-    Create PDF of figures in path
+    Input: pngfiles = List of plot files
+           fileout  = output filename
+           endb     = date for use in 1st page
+           cols     = number of columns for plots
+           adjust   = 1 (default) multiplier on scaled table heights
+                      if scaling not keeping all on same page
+    Output: PDF file
+
     https://pyfpdf.readthedocs.io/en/latest/reference/image/index.html
     '''
-    
-    # %%
-    import os
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    import re
-    from fpdf import FPDF
-    import modules.fpdfx as fpdfx
-    from PIL import Image
-    import dataframe_image as dfi   # had to install with pip
-    import datetime as dt
-    from modules.imagefit import imagefit
-
     
     #############################################################################
     # %%
     # Global Variables
     TITLE = "FRCS Budget Report: " + str(endb)
-    WIDTH = 210
+    HEIGHT = 297   # 11  * 25.4           # page height in mm   (was 297?)
+    WIDTH  = 210   # 8.5 * 25.4           # page width in mm    (was 210?)
     MARGIN = 12
-    SEPARATION = 2
+    SEPARATION = 0
     ## 2 columns split 1/2 and 1/2 for income/expense plots
     EVEN1X = MARGIN
     EVEN1W = WIDTH / 2 - MARGIN - SEPARATION/2
     EVEN2X = WIDTH / 2          + SEPARATION/2
     EVEN2W = EVEN1W
-    ## set layout for detail plots
-    if layout == 'COL':
-        ## 2 columns split 1/3 and 2/3
-        PLOTX = MARGIN
-        PLOTW = WIDTH / 3 - MARGIN - SEPARATION
-        TABX = PLOTX + PLOTW + SEPARATION
-        TABW = WIDTH - TABX - MARGIN
-    else:
-        ## alternate plots then tables
-        PLOTX = MARGIN
-        PLOTW = WIDTH - MARGIN*2
-        TABX = PLOTX
-        TABW = PLOTW
-    ## set layout to specify EVEN, COL, or ALT which alternates between plots and tables
-    HEIGHT = 297
+    ## set X location and full page width for a table
+    TABLEX = MARGIN
+    TABLEW = WIDTH - 2*MARGIN
+    #TABLEH = HEIGHT - current_y - MARGINB ## set layout to specify EVEN, COL, or ALT which alternates between plots and tables
+
+    printablew = WIDTH - 2 * MARGIN
+    PLOTW = printablew / cols - (cols - 1) * SEPARATION
 
     # Create PDF
     ## pdf=FPDF(format='letter',unit='in')
@@ -56,6 +55,16 @@ def pdf(path, fileout, endb, layout):
     ## pdf.ln(th)  ## add line break the same size as text
 
     
+    def pil2mm(pil_size, dpi=72):
+        # PIL images are often 72 dpi
+        # need to convert to mm for FPDF
+        #img = Image.open(image_path)
+        #height_pixels = img.height
+        height_pixels = pil_size
+        height_inches = height_pixels / dpi
+        height_mm = height_inches * 25.4
+        return height_mm
+
     #############################################################################
     '''
     First Page of PDF
@@ -65,7 +74,7 @@ def pdf(path, fileout, endb, layout):
 
     # Add lettterhead and title
     # fpdfx.create_letterhead(pdf, letterhead_picture, WIDTH)
-    pdf.image("input_files/frcs_orig.jpg", x=WIDTH-25.4-6, y=6, w=25.4)
+    pdf.image("input/frcs_orig.jpg", x=WIDTH-25.4-6, y=6, w=25.4)
     #fpdfx.create_title(pdf, TITLE, 40, th)
 
     # Add some words to PDF
@@ -80,18 +89,24 @@ def pdf(path, fileout, endb, layout):
     fpdfx.write2pdf(pdf, TITLE, family='Helvetica', style='B', fs=20, th=None, w=0, align='L', ln=1)
 
     ## add today
+    ytd_percent = (endb-dt.date(endb.year-1, 12, 31))/dt.timedelta(365,0,0,0)
+    ytd_percent = percent(ytd_percent, decimals=0)
     today = str(dt.date.today())                   # YYYY-MM-DD
-    fpdfx.write2pdf(pdf, 'Report date: '+today, family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
+    # fpdfx.write2pdf(pdf, 'Report date: '+today, family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
+    #                 r=128, g=128, b=128)
+    fpdfx.write2pdf(pdf, 
+                    ytd_percent + ' through the year; Report generated on ' + today,
+                    family='Helvetica', style='B', fs=14, th=None, w=0, align='L', ln=1,
                     r=128, g=128, b=128)
 
     ## get current y location
     current_y = FPDF.get_y(pdf)
-    print('y before add in/out figures', FPDF.get_y(pdf))
+    print('current_y before add 1st figure or table', FPDF.get_y(pdf))
 
-    # Add income and expense figures:  pdf.image(file,x,y,w)
-    pdf.image(path+"all_income.png"  , x=EVEN1X, w=EVEN1W)
-    pdf.image(path+"all_expenses.png", x=EVEN2X, y=current_y, w=EVEN2W)
-    print('y after add in/out figures', FPDF.get_y(pdf))
+    ## Add income and expense figures:  pdf.image(file,x,y,w)
+    #pdf.image(plotfiles[0] , x=EVEN1X, w=EVEN1W)
+    #pdf.image(plotfiles[1] , x=EVEN2X, y=current_y, w=EVEN2W)
+    #print('y after add in/out figures', FPDF.get_y(pdf))
 
     ## if want to play with centering table, could base x on image width and scaled size
     ##        ## get image
@@ -105,121 +120,212 @@ def pdf(path, fileout, endb, layout):
     # Add income/expense table
     ## pdf.ln(th/2)                               # pdf.ln(th) increments current y by th
     current_y = FPDF.get_y(pdf)
-    MARGINB = 2*MARGIN
-    TABLEH = HEIGHT - current_y - MARGINB
-    pdf.image(path+"all_table.png", x=MARGIN, h=TABLEH)
-    print('y after add in/out table', FPDF.get_y(pdf))
+    print('before print tables: current_y=',current_y)
 
-    max_y = FPDF.get_y(pdf)
-    print('max y =', max_y)
-    print('assumed bottom margin =', MARGINB)
+    number_of_tables = 1
+    if number_of_tables == 1:
+        # get image dimensions to figure out sizing
+        table1 = 'tmp_figures/table_totals_summary_chrome1.png'
+
+        # add some whitespace
+        pdf.ln(th)
+
+        # print table to pdf
+        pdf.image(table1, w=printablew)
+
+
+        # img1 = Image.open(table1)
+        # tablew = pil2mm(img1.width)
+        # table1h = pil2mm(img1.height)
+        # print()
+        # print('tables before scaling')
+        # print('img1.height=', img1.height)
+        # print('img1.width=', img1.width)
+
+        # # first determine scale needed to make the same width
+        # scalew1 = printablew / img1.width
+
+        # # next apply that to heights
+        # ploth1 = img1.height * scalew1
+        # plotw1 = img1.width  * scalew1
+        # print()
+        # print('tables after first scaling to get same widths')
+        # print('ploth1=', ploth1)
+        # print('plotw1=', plotw1)
+        # tableh = ploth1 + th
+    
+        # # now scale total height to fit on page
+        # remaining_height = HEIGHT - current_y - MARGIN
+        # print('tableh + slop   =', tableh)
+        # print('remaining_height=', remaining_height)
+        # scale2height = remaining_height / tableh
+
+        # #pdf.image(path+"all_table.png", x=MARGIN, h=TABLEH)
+        # ploth1 = img1.height * scalew1 * scale2height
+        # plotw1 = img1.width  * scalew1 * scale2height
+        # print()
+        # print('tables after second scaling')
+        # print('img1.height=', ploth1)
+        # print('img1.width=', plotw1)
+        # tableh = ploth1
+        # print('scaled tableh =', tableh)
+        # # not sure why this does not work right so added adjust factor to manually scale
+        # #pdf.image(table1, x=MARGIN, h=ploth1 * adjust)   
+        # pdf.image(table1, x=WIDTH/2 - plotw1/2, h=ploth1 * adjust)   
+        # tableh = adjust * tableh
+
+    elif number_of_tables == 3:
+        # get image heights for all 3 parts of the table to figure out sizing
+        table1 = 'tmp_figures/table_totals_summary_chrome1.png'
+        table2 = 'tmp_figures/table_totals_summary_chrome2.png'
+        table3 = 'tmp_figures/table_totals_summary_chrome3.png'
+        img1 = Image.open(table1)
+        img2 = Image.open(table2)
+        img3 = Image.open(table3)
+        #tablew = pil2mm(img1.width)
+        #table1h = pil2mm(img1.height)
+        #table2h = pil2mm(Image.open(table1).height)
+        #table3h = pil2mm(Image.open(table1).height)
+        print()
+        print('tables before scaling')
+        print('img1.height=', img1.height)
+        print('img2.height=', img2.height)
+        print('img3.height=', img3.height)
+        print('img1.width=', img1.width)
+        print('img2.width=', img2.width)
+        print('img3.width=', img3.width)
+        # surprisingly, all 3 tables are not the same width
+        # that will complicate scaling
+
+        # first determine scale needed to make the same width
+        scalew1 = printablew / img1.width
+        scalew2 = printablew / img2.width
+        scalew3 = printablew / img3.width
+
+        # next apply that to heights
+        ploth1 = img1.height * scalew1
+        ploth2 = img2.height * scalew2
+        ploth3 = img3.height * scalew3
+        plotw1 = img1.width  * scalew1
+        plotw2 = img2.width  * scalew2
+        plotw3 = img3.width  * scalew3
+        print()
+        print('tables after first scaling to get same widths')
+        print('ploth1=', ploth1)
+        print('ploth2=', ploth2)
+        print('ploth3=', ploth3)
+        print('plotw1=', plotw1)
+        print('plotw2=', plotw2)
+        print('plotw3=', plotw3)
+        tableh = ploth1 + ploth2 + ploth3 + th    # th for slop
+    
+        # now scale total height to fit on page
+        remaining_height = HEIGHT - current_y - MARGIN
+        print('tableh + slop   =', tableh)
+        print('remaining_height=', remaining_height)
+        scale2height = remaining_height / tableh
+
+        #pdf.image(path+"all_table.png", x=MARGIN, h=TABLEH)
+        ploth1 = img1.height * scalew1 * scale2height
+        ploth2 = img2.height * scalew2 * scale2height
+        ploth3 = img3.height * scalew3 * scale2height
+        plotw1 = img1.width  * scalew1 * scale2height
+        plotw2 = img2.width  * scalew2 * scale2height
+        plotw3 = img3.width  * scalew3 * scale2height
+        print()
+        print('tables after second scaling')
+        print('img1.height=', ploth1)
+        print('img2.height=', ploth2)
+        print('img3.height=', ploth3)
+        print('img1.width=', plotw1)
+        print('img2.width=', plotw2)
+        print('img3.width=', plotw3)
+        tableh = ploth1 + ploth2 + ploth3
+        print('scaled tableh =', tableh)
+        # not sure why this does not work right so added adjust factor to manually scale
+        #pdf.image(table1, x=MARGIN, h=ploth1 * adjust)   
+        #pdf.image(table2, x=MARGIN, h=ploth2 * adjust)
+        #pdf.image(table3, x=MARGIN, h=ploth3 * adjust)
+        pdf.image(table1, x=WIDTH/2 - plotw1/2, h=ploth1 * adjust)   
+        pdf.image(table2, x=WIDTH/2 - plotw2/2, h=ploth2 * adjust)
+        pdf.image(table3, x=WIDTH/2 - plotw3/2, h=ploth3 * adjust)
+        tableh = adjust * tableh
+
+        # adding image does not seem to update y
+        pdf.set_y(current_y + tableh) 
+        current_y = FPDF.get_y(pdf)
+        print('adjusted scaled tableh =', tableh)
+        print('current_y after add in/out table', current_y)
+        print('total page height =', HEIGHT)
+
 
     #############################################################################
     '''
     Subsequent Pages of PDF
     '''
     ## identify list of category files
-    filelist = os.listdir(path)
-    filelist = [x for x in filelist if re.findall(r'category_',x)]
-    numplots = [x for x in filelist if re.findall(r'_plot',x)]
+    #filelist = os.listdir(path)
+    #filelist = [x for x in filelist if re.findall(r'category_',x)]
+    #numplots = [x for x in filelist if re.findall(r'_plot',x)]
+    #filelist = plotfiles[2:len(plotfiles)-1]  # 1st 2 png files were already printed on 1st page
+    filelist = plotfiles
 
     # Add Page (this forces a page change; additional pages will be added as needed)
+    print()
+    print('###################### new page ######################')
     pdf.add_page()
 
     ## Add some words to PDF
     fpdfx.write2pdf(pdf, 'Detailed Income and Expense Reports', fs=14, style='B')
 
-    for i in range(0, len(numplots)):
-        
-        ## starting y-location on page
-        current_y = FPDF.get_y(pdf)
-        
+    position = 0
+    PLOTX = MARGIN
+    ## starting y-location on page
+    current_y = FPDF.get_y(pdf)
+    for plotfile in filelist:
+                
         ## print y location to screen
         print('')
-        print('category', i, 'starts at y =', current_y)
+        print(plotfile, 'starts at y =', current_y)
+        img = Image.open(plotfile)
 
-        ## identify plot and corresponding table(s)
-        plotfile = "category_{0:01d}_plot".format(i) + '.png'
-        ## https://stackoverflow.com/questions/6930982/how-to-use-a-variable-inside-a-regular-expression
-        ## tablematch = [x for x in filelist if re.findall(r'_{i}_table',x)]  # this did not work
-        wanted = '_' + str(i) + '_table'
-        tablematch = list(filter(lambda x: wanted in x, filelist))
-
-        ## first get height of each plot and make sure at least 1st table fits on page
-        plt_height = Image.open(path + plotfile).height
-        plt_width = Image.open(path + plotfile).width
-        # scale height to pdf units
-        PLOTH = PLOTW * plt_height / plt_width
-        
-        ## ## for loop adds up height of all tables, but some were too long for a single page so focusing just on at least one
-        ## TABH = 0
-        ## for tablefile in tablematch:
-        ##    # get image height and width in pixels
-        ##    img_height = Image.open(path + tablefile).height
-        ##    img_width  = Image.open(path + tablefile).width
-        ##    # scale height to pdf units
-        ##    TABH = TABH + TABW * img_height / img_width
-
-        ## figure out height of 1st table in pdf units
-        # get image height and width in pixels
-        img_height = Image.open(path + tablematch[0]).height
-        img_width  = Image.open(path + tablematch[0]).width
-        # scale height to pdf units
-        TABH = TABW * img_height / img_width
-
-        if layout == 'COL':
-            category_height = max(PLOTH, TABH)
-        else:
-            category_height = PLOTH + th + TABH
-        max_y_needed = current_y + category_height
-        if max_y_needed > max_y:
+        ploth = img.height * PLOTW / img.width
+        remaining_y = HEIGHT - current_y - MARGIN
+        remaining_y = HEIGHT - current_y
+        if ploth > remaining_y:
+            print()
+            print('###################### new page ######################')
             pdf.add_page()
-            print('added new page to fit plot and table(s) for category', i)
-            print('max_y_needed =', max_y_needed, '> max_y =', max_y)
+            print()
+            print('added new page to fit plot and table(s) for', plotfile)
+            print('plot height =', ploth, '> remaining needed =', remaining_y)
             print('resetting current_y to top of page')
             current_y = MARGIN
             pdf.set_y(current_y)
+            position = 0
 
-        ## Add plot for category
-        print('Adding', path + plotfile)
-        pdf.image(path + plotfile, x=PLOTX, w=PLOTW)
+        ## Add income and expense figures:  pdf.image(file,x,y,w)
+        #pdf.image(plotfiles[0] , x=EVEN1X, w=EVEN1W)
+        #pdf.image(plotfiles[1] , x=EVEN2X, y=current_y, w=EVEN2W)
+        #print('y after add in/out figures', FPDF.get_y(pdf))
 
-        ## plotbottom y-location
-        plotbottom = FPDF.get_y(pdf)
-        print('plot bottom =', plotbottom)
+        ## Add plot
+        print()
+        print('Adding', plotfile)
+        print('current_y=',current_y)
+        PLOTXi = PLOTX + position * PLOTW + SEPARATION * (cols-1)
+        pdf.image(plotfile, x=PLOTXi, y=current_y, w=PLOTW)
+        position = position + 1
 
-        if layout != 'COL':
-            pdf.ln(th)   # add a line break
-            current_y = plotbottom + th
-
-        ## Add corresponding table(s)
-        for tablefile in tablematch:
-            print('Adding', path + tablefile)
-
-            ## add new page if needed to fit image
-            current_y = imagefit(pdf, image=path+tablefile, wpdf=TABW, y=current_y, max_y=max_y, margin_top=MARGIN, extra=0, atleast=0)
-
-            ## add image
-            pdf.image(path + tablefile, x=TABX, y=current_y, w=TABW)   
-
-            ## problem: get_y() not incrementing after pdf.image()
-            ## suggestion to use PIL (a.k.a., pillow)
-            ## https://stackoverflow.com/questions/47339043/get-y-value-of-the-image-bottom-in-fpdf-in-python
-            # get image height and width in pixels
-            img_height = Image.open(path + tablefile).height
-            img_width  = Image.open(path + tablefile).width
-            # scale height to pdf units
-            TABH = TABW * img_height / img_width
-            current_y = current_y + TABH
+        if position == cols:
+            # increment current_y
+            current_y = FPDF.get_y(pdf) + ploth
             pdf.set_y(current_y)
+            # reset position
+            position = 0
+            # add specified amount of separation
+            pdf.ln(SEPARATION)
 
-            current_y = FPDF.get_y(pdf)
-            print('table bottom =', current_y)
-
-        pdf.ln(th)
-        current_y = FPDF.get_y(pdf)
-        pdf.set_y(max(plotbottom, current_y))
-        
     #############################################################################
     # Generate the PDF
     pdf.output(fileout, 'F')

@@ -1,19 +1,18 @@
-def read_map():
+import os
+
+def read_map(keep='main'):
     ## pd.read_excel('fn.xlsx', sheet_name=0, header=2)
     import pandas as pd
     import sys
-    mapfile = 'input_files/map.xlsx'
-    print('map file:', mapfile)
+    # mapfile = 'input/map.xlsx'
+    # os.path.join() used instead of above to work on Windows and Linux
+    mapfile = os.path.join('input', 'map.xlsx')
+    #print('map file:', mapfile)
     
     map = pd.read_excel(mapfile)
     map['Account'] = map['Account'].str.strip()    # strip leading and trailing white space
     map['AccountNum'] = map.Account.str.extract('(^\d+a|^\d+)') # regular expression: numbers followed by a or just numbers
     
-    ## only keep needed columns
-    ## map = map[['InOrOut', 'Category', 'GreenSheet', 'Committee', 'SourceOfFunds', 'Account', 'AccountNum']]
-    map = map[['InOrOut', 'Category', 'SourceOfFunds', 'Account', 'AccountNum']]
-    ## print(map.head())
-
     # check for non-unique account numbers
     df = map.AccountNum
     dups = df[df.duplicated()]

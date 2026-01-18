@@ -8,7 +8,7 @@
     + Table and figures to compare for line items
 
 
-## Input files expected in folder "input_files"
+## Input files expected in folder "input"
 + budget_yyyy.xlsx = budget file in Excel format where yyyy is the year (e.g., budget_2023.xlsx) with the following required columns. Other columns also allowed in the file but are not used.
   + Account = 4-digit number followed by name of account
               Account needs to be the same in Icon
@@ -51,15 +51,14 @@
   + conda env export > environment_budget.yml
 
 
-## Executable (not working yet)
+## Executable
 + Created in Git Bash using:
-  + Activate environment: conda activate py39
+  + Activate environment: conda activate budget
   + deterine path to python executable: which python
     + returned: /c/Users/dlhje/anaconda3/envs/py39/python
-  + Added python path as environment variable: C:\Users\dlhje\anaconda3\envs\py39\
   + Two packages needed (openpyxl maybe only needed for use of Excel)
     + pip install pyinstaller
     + conda install openpyxl
-  + created executable: pyinstaller --onefile budget.py
+  + created executable: `pyinstaller budget.py --onefile --hidden-import openpyxl.cell._writer`
     + if fails, try removing build folder and budget.spec file
   + executable put into folder: dist

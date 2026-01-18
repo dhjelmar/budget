@@ -69,7 +69,7 @@ def pdf_txt(path, fileout, endb, layout, categories, table):
 
     # Add lettterhead and title
     # fpdfx.create_letterhead(pdf, letterhead_picture, WIDTH)
-    pdf.image("input_files/frcs_orig.jpg", x=WIDTH-25.4-6, y=6, w=25.4)
+    pdf.image("input/frcs_orig.jpg", x=WIDTH-25.4-6, y=6, w=25.4)
     #fpdfx.create_title(pdf, TITLE, 40, th)
 
     # Add some words to PDF

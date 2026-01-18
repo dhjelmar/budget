@@ -1,4 +1,13 @@
+budget_report_*
+build
+dist
+junk
+tmp
+tmp_figures
 figures/
 __pycache__/
 modules/__pycache__/
+output
 supporting_files/
+*.spec
+*.html
