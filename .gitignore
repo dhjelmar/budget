@@ -10,3 +10,4 @@ modules/__pycache__/
 output
 supporting_files/
 *.spec
+*.html
