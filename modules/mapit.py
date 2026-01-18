@@ -1,7 +1,7 @@
 # %%
 import sys
 
-def mapit(df1, map):
+def mapit(df, map, fail_if_missing=False):
     '''
     pd.merge(df1, map, how='left', on='AccountNum')
     '''
@@ -9,16 +9,16 @@ def mapit(df1, map):
     import pandas as pd
     import regex as re
 
-    df = pd.merge(df1, map, how='left', on='AccountNum')
+    df = pd.merge(df, map, how='left', on='AccountNum')
 
     ## flag any line items from dataframe that are not in the map (e.g., so no Category assigned)
     nan_values = df[df['L2'].isna()]
-    missing_from_map = df1[df1['AccountNum'].isin(nan_values.AccountNum.to_list())]
-    if len(nan_values) != 0:
+    missing_from_map = df[df['AccountNum'].isin(nan_values.AccountNum.to_list())]
+    if (fail_if_missing)&(len(nan_values)) != 0:
         print('')
         print('FATAL ERROR: No assignment in map.xlsx file for the following.')
         print('             Fix entry in Icon or, if Icon is correct, add new entry to map.xlsx.')
-        print(missing_from_map)
+        print(missing_from_map[0:3])
         input('Press enter to exit this window')
         sys.exit()
 

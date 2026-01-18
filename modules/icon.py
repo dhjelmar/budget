@@ -1,21 +1,21 @@
 from getpass4 import getpass
+import pandas as pd
+import modules.dollars as dollars
+from modules.query import query
 
-def icon(startb, endb, startc, endc, batch):
+def icon(start, end, interactive):
     '''
     Import following from IconCMO: Accounts
-                                   Register entries between startb and endb
-                                   Register entries between startc and endc
+                                   Register entries between start and end
 
     Input
         dates in string (e.g., '2023-01-01') or datetime.date format (e.g., datetime.date(2023,1,1))
                                    
     Output
-        df1 = Register entries between startc and endc with Accounts identified
-        df2 = Register entries between startb and endb with Accounts identified
-
+        df = Register entries between start and end with Accounts identified
 
     Example
-        actualb_read, actualc_read = icon.icon(startb, endb, startc, endc)
+        actual = my.icon(start, end)
 
     '''
 
@@ -24,23 +24,11 @@ def icon(startb, endb, startc, endc, batch):
     # https://secure1.iconcmo.com/developer/
 
     # %%
-    ## standard packages
-    import pandas as pd
-    import csv
-    ## my functions
-    import modules.dollars as dollars
-    from modules.query import query
+    #start = '2022-01-01'
+    #end   = '2022-12-31'
 
-    #startc = '2022-01-01'
-    #endc   = '2022-12-31'
-    #startb = '2023-01-01'
-    #endb   = '2023-12-31'
-
-    startb  = str(startb)
-    endb    = str(endb)
-    startc = str(startc)
-    endc   = str(endc)
-
+    start  = str(start)
+    end    = str(end)
 
     username = ""
     password = ""
@@ -51,10 +39,10 @@ def icon(startb, endb, startc, endc, batch):
     if (username == "") | (password == ""):
         print()
         username = input("Enter ICON user name:")
-        if batch:
-            password = getpass(prompt='Enter ICON password: ')
-        else:
+        if interactive:
             password = input("Enter ICON password:")
+        else:
+            password = getpass(prompt='Enter ICON password: ')
 
     # %%
     ## issue request through api
@@ -84,21 +72,10 @@ def icon(startb, endb, startc, endc, batch):
     ## with open('budget_raccount.txt','w') as fd:
     ##     fd.write(raccount.text)
 
-
-
     # %%
-    ## submit query to api for comparison year
-    d1, r1 = query(phonenumber, username, password, "GL", "Register", startc, endc)
-    register1 = d1['register']
-
-
-    # %%
-    ## submit query to api for budget year
-    d2, r2 = query(phonenumber, username, password, "GL", "Register", startb, endb)
-    register2 = d2['register']
-
-
-
+    ## submit query to api for requested date range
+    d1, r1 = query(phonenumber, username, password, "GL", "Register", start, end)
+    register = d1['register']
 
     ##-----------------------------------------------------------------------------
     # %% [markdown]
@@ -132,10 +109,10 @@ def icon(startb, endb, startc, endc, batch):
 
 
     # %%
-    ## create dataframe from 'register1', using 'account_map' to get the account type
+    ## create dataframe from 'register', using 'account_map' to get the account type
     ## create an empty list, fill it, then convert to dataframe
     list1 = []
-    for transaction in register1:
+    for transaction in register:
         for line_item in transaction['line_items']:
             account_type = account_map[line_item['account_id']]
             if account_type == "Expenditures" or account_type == "Revenues":
@@ -146,65 +123,33 @@ def icon(startb, endb, startc, endc, batch):
                 account_name = account_name_arr[len(account_name_arr) - 1]
                 list1.append([transaction['date'], account_type, account_name, amount])
     ## convert to dataframe
-    df1 = pd.DataFrame(list1)
-    df1.columns = ['Date', 'Account Type', 'Account', 'Amount']
-
-
-
-
-    # %%
-    ## create dataframe from 'register2', using 'account_map' to get the account type
-    ## create an empty list, fill it, then convert to dataframe
-    list2 = []
-    for transaction in register2:
-        for line_item in transaction['line_items']:
-            account_type = account_map[line_item['account_id']]
-            if account_type == "Expenditures" or account_type == "Revenues":
-                amount = line_item['credit']
-                if amount == "$0.00":
-                    amount = "-" + line_item['debit']
-                account_name_arr = line_item['account_name'].split(':')
-                account_name = account_name_arr[len(account_name_arr) - 1]
-                list2.append([transaction['date'], account_type, account_name, amount])
-    ## convert to dataframe
-    df2 = pd.DataFrame(list2)
-    df2.columns = ['Date', 'Account Type', 'Account', 'Amount']
+    df = pd.DataFrame(list1)
+    df.columns = ['Date', 'Account Type', 'Account', 'Amount']
 
     ## convert dates from str to datetime to date
-    df1.Date = pd.to_datetime(df1.Date).dt.date 
-    df2.Date = pd.to_datetime(df2.Date).dt.date 
+    df.Date = pd.to_datetime(df.Date).dt.date 
     
     ## drop 'Account Type' column (i.e., whether "Revenues" or "Expenditures")
-    df1 = df1.drop(columns=['Account Type'])
-    df2 = df2.drop(columns=['Account Type'])
+    df = df.drop(columns=['Account Type'])
 
     ## add AccountNum column
-    df1['Account'] = df1['Account'].str.strip()    # strip leading and trailing white space
-    ## create another column with budget line item number only because database not consistent with descriptions
-    #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
-    df2['Account'] = df2['Account'].str.strip()    # strip leading and trailing white space
-    ## create another column with budget line item number only because database not consistent with descriptions
-    #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+    df['Account'] = df['Account'].str.strip()    # strip leading and trailing white space
 
     ## convert Ammount from string to number
-    df1['Amount'] = df1['Amount'].apply(dollars.to_num)
-    df2['Amount'] = df2['Amount'].apply(dollars.to_num)
+    df['Amount'] = df['Amount'].apply(dollars.to_num)
 
     ## strip leading and trailing white space
-    df1['Account'] = df1['Account'].str.strip()
-    df2['Account'] = df2['Account'].str.strip()
+    df['Account'] = df['Account'].str.strip()
+
+    # manually correct known errors in Icon
+    mask = df.Account == '6000 Worship & Arts ⟩  Worship & Arts Senior Pastor ⟩ 5011 Business & Auto Expense Sr. Pastor'
+    df.loc[mask,'Account'] = '5017 Business & Auto Sr. Pastor'
 
     ## extract account numbers to separate variable
-    #df1['AccountNum'] = df1.Account.str.extract('(\d+)')
-    #df2['AccountNum'] = df2.Account.str.extract('(\d+)')
+    #df['AccountNum'] = df.Account.str.extract('(\d+)')
+    df['AccountNum'] = df['Account'].str[:4]
+    df.AccountNum = df.AccountNum.astype(str)
 
-    print()
-    print('budget year entries in dataframe, actualb_read:')
-    print(df2)
-    print()
-    print('comparison year entries in dataframe, actualc_read:')
-    print(df1)
-    
     # %%
     ## erase username and password
     eraseit = True
@@ -215,4 +160,4 @@ def icon(startb, endb, startc, endc, batch):
         ## del(r1)
         ## del(r2)
 
-    return df2, df1
+    return df

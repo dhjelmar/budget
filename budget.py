@@ -48,7 +48,98 @@ import modules as my
 
 os.getcwd()
 
+###############################################################################
+#%% [markdown]
+## Set Options
 
+#%%
+interactive = True   # option used to determine function to be used for password
+
+#%%
+icon_refresh = False
+
+#%%
+# set dates for ICON data range
+start = dt.date(2022, 1, 1)
+end   = dt.date(2025, 1, 31)
+print('start           =',start)
+print('end             =',end)
+
+#%%
+# set years for comparison
+year_budget = 2025
+year_comparison = year_budget - 1
+print('budget     year = ',year_budget)
+print('comparison year =',year_comparison)
+
+
+#%% [markdown]
+## Read Data
+
+#%% 
+# PULL INFO FROM ICON
+if icon_refresh:
+    print()
+    print('icon_refresh = ', icon_refresh)
+    print('pull data from Icon')
+    actual = my.icon(start, end, interactive)
+    # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
+    if not os.path.exists('tmp'):
+        os.mkdir('tmp')
+    actual.to_csv('tmp/actual.csv', index=False)
+
+else:
+    print()
+    print('icon_refresh = ', icon_refresh)
+    print('pull data from saved Icon files')
+    actual = pd.read_csv('tmp/actual.csv')
+    # followign converts string to Timestamp (same as datetime.datetime) to datetime.date
+    actual['Date'] = pd.to_datetime(actual['Date']).dt.date
+    # following is only needed if the requested date ranges are smaller than what is in the csv files
+    actual = actual.loc[(actual.Date >= start) & (actual.Date <= end)]
+    # read from csv pulls actuals as integer so need to recovert to string for my.mapit()
+    actual.AccountNum = actual.AccountNum.astype(str)
+
+# rename Account to Account_ICON
+actual = actual.rename(columns={'Account': 'Account_Icon'})
+
+
+#%% 
+# READ BUDGET INFO FROM EXCEL
+budget = pd.read_excel(os.path.join('input','budget.xlsx'))
+budget = budget[['Year','Account','Budget']]
+## extract account numbers to separate variable
+budget['AccountNum'] = budget['Account'].str[:4]
+# rename Account to Account_budget
+budget = budget.rename(columns={'Account': 'Account_budget'})
+
+#%% 
+# READ MAP
+print()
+print("starting to read map.xlsx")
+map, map_duplicates = my.read_map()
+print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
+
+#%%
+###############################################################################
+# Apply map to actuals
+actual, actual_missing = my.mapit(actual, map, fail_if_missing=True)
+#actual_missing
+
+#%%
+# Apply map to budget
+budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
+#budget_missing
+
+
+
+
+
+
+#%%
+
+###############################################################################
+###############################################################################
 ###############################################################################
 # %% [markdown]
 ## Set options
@@ -58,7 +149,7 @@ os.getcwd()
 startb, endb, startc, endc = my.set_dates()
 # type(startb)     # datetime.date
 
-# overwrite above for easier date setting if not running in batch
+# overwrite above for easier date setting if not running in interactive
 overwrite_dates = False
 if overwrite_dates:
     print('overwriting selected dates')
@@ -71,10 +162,8 @@ if overwrite_dates:
 #apply_linear_adjustments = True
 #print('apply_linear_adjustments = ', apply_linear_adjustments)
 
-## set whether running interactively or batch
-## batch = False uses getpass() for password which hides password but does not work interactively
-##       = True uses input() for password which does work interactively
-batch = False
+## set whether running interactively
+interactive = False
 
 ## set whether to update icon entries used and stored in actualb.csv or actualc.csv
 icon_refresh = False
@@ -130,7 +219,7 @@ if icon_refresh:
     print()
     print('icon_refresh = ', icon_refresh)
     print('pull data from Icon')
-    actualb, actualc = my.icon(startb, endb, startc, endc, batch)
+    actualb, actualc = my.icon(startb, endb, startc, endc, interactive)
     # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
     if not os.path.exists('tmp'):
         os.mkdir('tmp')
@@ -298,7 +387,7 @@ print("find", path)
 
 
 #%%
-if batch:
+if not interactive:
     input('Press enter to exit this window')
     sys.exit()
 
