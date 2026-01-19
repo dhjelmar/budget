@@ -60,8 +60,8 @@ icon_refresh = False
 
 #%%
 # set dates for ICON data range
-start = dt.date(2022, 1, 1)
-end   = dt.date(2025, 1, 31)
+start = dt.date(2022,  1,  1)
+end   = dt.date(2025, 12, 31)
 print('start           =',start)
 print('end             =',end)
 
@@ -100,9 +100,20 @@ else:
     # read from csv pulls actuals as integer so need to recovert to string for my.mapit()
     actual.AccountNum = actual.AccountNum.astype(str)
 
+# change Date to datetime format    
+actual['Date'] = pd.to_datetime(actual['Date'])
+
 # rename Account to Account_ICON
 actual = actual.rename(columns={'Account': 'Account_Icon'})
 
+# add column for year
+actual['Year'] = actual.Date.dt.year
+
+#%%
+## check for values
+#print(actual.loc[actual.Account_Icon.str.contains('Endowment')])
+#print(actual.loc[actual.Account_Icon.str.contains('Birch')])
+#print(actual.loc[actual.Account_Icon.str.contains('Schermerhorn')])
 
 #%% 
 # READ BUDGET INFO FROM EXCEL
@@ -120,11 +131,16 @@ print("starting to read map.xlsx")
 map, map_duplicates = my.read_map()
 print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 
-#%%
 ###############################################################################
+#%%
+# Apply map
+
 # Apply map to actuals
 actual, actual_missing = my.mapit(actual, map, fail_if_missing=True)
 #actual_missing
+
+sorted(my.unique(actual.loc[actual.Year==2025].L1))
+
 
 #%%
 # Apply map to budget
@@ -132,11 +148,64 @@ budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 #budget_missing
 
 
+###############################################################################
+#%%
+#%% 
+# summarize by levels
+levels = ['Year', 'InOrOut', 'L1', 'L2']
+levels = ['Year', 'InOrOut', 'L1']
 
+actual_sum = actual.pivot_table(index=levels, 
+                                values=['Amount'], 
+                                aggfunc='sum')
+actual_sum = actual_sum.reset_index()
+actual_sum
+
+budget_sum = budget.pivot_table(index=levels, 
+                                values=['Budget'], 
+                                aggfunc='sum')
+budget_sum = budget_sum.reset_index()
+budget_sum
 
 
 
 #%%
+# combine with budget
+record = pd.merge(actual_sum, budget_sum, how='outer', on=levels)
+
+#record.to_csv(os.path.join('output','budget_summary.csv'), index=False)
+
+
+#%%
+# split records
+def recordsplit(record, year):
+    record = record.loc[record.Year==year].copy()
+    record = record.rename(columns={'Amount': 'Actual_'+str(year)})
+    record = record.rename(columns={'Budget': 'Budget_'+str(year)})
+    record = record.drop('Year', axis=1)
+    return record
+record22 = recordsplit(record, 2022)
+record23 = recordsplit(record, 2023)
+record24 = recordsplit(record, 2024)
+record25 = recordsplit(record, 2025)
+record26 = recordsplit(record, 2026)
+
+#%%
+# combine into record and save to csv
+record = pd.merge(record22, record23, how='outer', on=levels[1:])
+record = pd.merge(record, record24, how='outer', on=levels[1:])
+record = pd.merge(record, record25, how='outer', on=levels[1:])
+record = pd.merge(record, record26, how='outer', on=levels[1:])
+record[['InOrOut','L1','Actual_2023','Actual_2024','Actual_2025','Budget_2026']]
+
+#%%
+record.to_csv(os.path.join('output','budget_summary.csv'), index=False)
+
+#%%
+record_sum = record.pivot_table(index=['InOrOut'], 
+                                values=['Actual_2023','Actual_2024','Actual_2025','Budget_2026'], 
+                                aggfunc='sum')
+record_sum
 
 ###############################################################################
 ###############################################################################
