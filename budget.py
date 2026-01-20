@@ -139,7 +139,7 @@ print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 actual, actual_missing = my.mapit(actual, map, fail_if_missing=True)
 #actual_missing
 
-sorted(my.unique(actual.loc[actual.Year==2025].L1))
+#sorted(my.unique(actual.loc[actual.Year==2025].L1))
 
 
 #%%
@@ -147,65 +147,36 @@ sorted(my.unique(actual.loc[actual.Year==2025].L1))
 budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 #budget_missing
 
-
 ###############################################################################
 #%%
-#%% 
-# summarize by levels
-levels = ['Year', 'InOrOut', 'L1', 'L2']
-levels = ['Year', 'InOrOut', 'L1']
-
-actual_sum = actual.pivot_table(index=levels, 
-                                values=['Amount'], 
-                                aggfunc='sum')
-actual_sum = actual_sum.reset_index()
-actual_sum
-
-budget_sum = budget.pivot_table(index=levels, 
-                                values=['Budget'], 
-                                aggfunc='sum')
-budget_sum = budget_sum.reset_index()
-budget_sum
-
+# create financials object for each year
+financials = []
+for i,year in enumerate(my.unique(actual.Year.to_list() + budget.Year.to_list())):
+    print('i =',i,'; year =',year)
+    financials.append(my.financials(year, actual, budget))
 
 
 #%%
-# combine with budget
-record = pd.merge(actual_sum, budget_sum, how='outer', on=levels)
+# combine years for summary of actual amounts for eary years and 2026 budget
+def modit(obj, target='Amount'):
+    df1 = obj.L1[['InOrOut','L1',target]].copy()
+    if target=='Amount':
+        df1 = df1.rename(columns={target: 'Actual_'+str(obj.year)})
+    else:
+        df1 = df1.rename(columns={target: 'Budget_'+str(obj.year)})
+    return df1
 
-#record.to_csv(os.path.join('output','budget_summary.csv'), index=False)
-
-
-#%%
-# split records
-def recordsplit(record, year):
-    record = record.loc[record.Year==year].copy()
-    record = record.rename(columns={'Amount': 'Actual_'+str(year)})
-    record = record.rename(columns={'Budget': 'Budget_'+str(year)})
-    record = record.drop('Year', axis=1)
-    return record
-record22 = recordsplit(record, 2022)
-record23 = recordsplit(record, 2023)
-record24 = recordsplit(record, 2024)
-record25 = recordsplit(record, 2025)
-record26 = recordsplit(record, 2026)
+df = pd.merge(modit(financials[0]), modit(financials[1]), how='outer', on=['InOrOut','L1'])
+df = pd.merge(df, modit(financials[2]), how='outer', on=['InOrOut','L1'])
+df = pd.merge(df, modit(financials[3]), how='outer', on=['InOrOut','L1'])
+df = pd.merge(df, modit(financials[4], target='Budget'), how='outer', on=['InOrOut','L1'])
+df.to_csv(os.path.join('output','budget_summary.csv'), index=False)
 
 #%%
-# combine into record and save to csv
-record = pd.merge(record22, record23, how='outer', on=levels[1:])
-record = pd.merge(record, record24, how='outer', on=levels[1:])
-record = pd.merge(record, record25, how='outer', on=levels[1:])
-record = pd.merge(record, record26, how='outer', on=levels[1:])
-record[['InOrOut','L1','Actual_2023','Actual_2024','Actual_2025','Budget_2026']]
 
-#%%
-record.to_csv(os.path.join('output','budget_summary.csv'), index=False)
 
-#%%
-record_sum = record.pivot_table(index=['InOrOut'], 
-                                values=['Actual_2023','Actual_2024','Actual_2025','Budget_2026'], 
-                                aggfunc='sum')
-record_sum
+
+
 
 ###############################################################################
 ###############################################################################

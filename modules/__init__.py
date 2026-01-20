@@ -1,10 +1,11 @@
+from modules.financials import financials
 from modules.set_dates import set_dates
 from modules.read_map import read_map
 from modules.read_budget import read_budget
-from modules.linearadj import linearadj
+#from modules.linearadj import linearadj
 from modules.mapit import mapit
 from modules.icon import icon
-import modules.dollars as dollars            # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
+import modules.dollars as dollars   # gives access to all fucntions in dollars.py; e.g., dollars.to_num('-$4')
 from modules.percent import percent
 from modules.highlight import highlight
 from modules.write_excel import write_excel
