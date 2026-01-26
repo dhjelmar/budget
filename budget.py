@@ -48,30 +48,39 @@ import modules as my
 
 os.getcwd()
 
+
 ###############################################################################
 #%% [markdown]
 ## Set Options
+
+#%%
+## Set budget and comparison year start and end dates
+
+# overwrite above for easier date setting if not running in interactive
+overwrite_dates = True
+if overwrite_dates:
+    print('overwriting selected dates')
+    startb = dt.date(2025, 1, 1)
+    endb   = dt.date(2025, 1, 31)
+    startc = dt.date(2024, 1, 1)
+    endc   = dt.date(2024, 12, 31)
+    print('budget start    :', startb)
+    print('budget end      :', endb)
+    print('comparison start:', startc)
+    print('comparison end  :', endc)
+else:
+    startb, endb, startc, endc = my.set_dates()
+    # type(startb)     # datetime.date
+
+#%% set start and end dates for pulling info from ICON
+start = dt.date(2023, 1, 1)
+end   = endb
 
 #%%
 interactive = True   # option used to determine function to be used for password
 
 #%%
 icon_refresh = False
-
-#%%
-# set dates for ICON data range
-start = dt.date(2022,  1,  1)
-end   = dt.date(2025, 12, 31)
-print('start           =',start)
-print('end             =',end)
-
-#%%
-# set years for comparison
-year_budget = 2025
-year_comparison = year_budget - 1
-print('budget     year = ',year_budget)
-print('comparison year =',year_comparison)
-
 
 #%% [markdown]
 ## Read Data
@@ -147,212 +156,74 @@ actual, actual_missing = my.mapit(actual, map, fail_if_missing=True)
 budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 #budget_missing
 
+budget.to_csv(os.path.join('output','junk.csv'),
+                                   index=False)
+
 ###############################################################################
 #%%
-# create financials object for each year
+# create financials object for each year and write to output file
 financials = []
-for i,year in enumerate(my.unique(actual.Year.to_list() + budget.Year.to_list())):
+years = my.unique(actual.Year.to_list() + budget.Year.to_list())
+for i,year in enumerate(years):
     print('i =',i,'; year =',year)
     financials.append(my.financials(year, actual, budget))
+    financials[years.index(year)].Account.to_csv(os.path.join('output','budget_details_'+str(year)+'.csv'),
+                                                 index=False)
 
+financials[years.index(2024)].actual
 
 #%%
 # combine years for summary of actual amounts for eary years and 2026 budget
-def modit(obj, target='Amount'):
-    df1 = obj.L1[['InOrOut','L1',target]].copy()
+def modit(obj, target='Amount', levels=['InOrOut','L1']):
+    if len(levels) == 2:
+        df1 = obj.L1[levels+[target]].copy()
+    elif len(levels) == 3:
+        df1 = obj.L2[levels+[target]].copy()
+    elif len(levels) == 4:
+        df1 = obj.Account[levels+[target]].copy()        
     if target=='Amount':
         df1 = df1.rename(columns={target: 'Actual_'+str(obj.year)})
     else:
         df1 = df1.rename(columns={target: 'Budget_'+str(obj.year)})
     return df1
 
-df = pd.merge(modit(financials[0]), modit(financials[1]), how='outer', on=['InOrOut','L1'])
-df = pd.merge(df, modit(financials[2]), how='outer', on=['InOrOut','L1'])
-df = pd.merge(df, modit(financials[3]), how='outer', on=['InOrOut','L1'])
-df = pd.merge(df, modit(financials[4], target='Budget'), how='outer', on=['InOrOut','L1'])
+#df = pd.merge(modit(financials[years.index(2022)]), modit(financials[years.index(2023)]), how='outer', on=['InOrOut','L1'])
+df = pd.merge(modit(financials[years.index(2023)]), modit(financials[years.index(2024)]), how='outer', on=['InOrOut','L1'])
+df = pd.merge(df, modit(financials[years.index(2025)]), how='outer', on=['InOrOut','L1'])
+df = pd.merge(df, modit(financials[years.index(2025)], target='Budget'), how='outer', on=['InOrOut','L1'])
+df = pd.merge(df, modit(financials[years.index(2026)], target='Budget'), how='outer', on=['InOrOut','L1'])
 df.to_csv(os.path.join('output','budget_summary.csv'), index=False)
 
 #%%
+# combine years for detailed results
+budgetyear = 2026
+levels = ['InOrOut','L1','L2','Account']
+df = pd.merge(modit(financials[years.index(budgetyear-1)], levels=levels), 
+              modit(financials[years.index(budgetyear)], target='Budget', levels=levels), 
+                    how='outer', 
+                    on=levels)
+df.to_csv(os.path.join('output','budget_details_'+str(budgetyear)+'.csv'), index=False)
 
-
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-# %% [markdown]
-## Set options
-
-# %%
-## Set budget and comparison year start and end dates
-startb, endb, startc, endc = my.set_dates()
-# type(startb)     # datetime.date
-
-# overwrite above for easier date setting if not running in interactive
-overwrite_dates = False
-if overwrite_dates:
-    print('overwriting selected dates')
-    startb = dt.date(2025, 1, 1)
-    endb   = dt.date(2025, 1, 31)
-    startc = dt.date(2024, 1, 1)
-    endc   = dt.date(2024, 12, 31)
-
-## set whether to apply linear adjustments for Covenant, Endowment, UP Fund, Tercentenary income
-#apply_linear_adjustments = True
-#print('apply_linear_adjustments = ', apply_linear_adjustments)
-
-## set whether running interactively
-interactive = False
-
-## set whether to update icon entries used and stored in actualb.csv or actualc.csv
-icon_refresh = False
-
-# set levels for pivot table and plots
-levels = ['InOrOut', 'L1', 'L2']
-levels = ['InOrOut', 'L1']
-
-
-###############################################################################
-# %% [markdown]
-## READ MAP OF ACCOUNTS TO CATEGORIES INTO DATAFRAME: map
-
-# %%
-print()
-print("starting to read map.xlsx")
-map, map_duplicates = my.read_map()
-print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
-
-
-###############################################################################
-# %% [markdown]
-## READ BUDGET DATA INTO DATAFRAME: budget
 
 #%%
-print()
-print("starting to read budget.xlsx")
-budget, budget_duplicates = my.read_budget(startb.year)
-budget = budget.rename(columns={'Account': 'Account_Budget'})
+#obj = financials[years.index(2025)]
+#df = obj.history('L2')
+#my.select(df, InOrOut='In', L1='01 Contributions - pledges', L2='all')
+
 
 #%%
 ## filter budget to only requested year then drop the year column
 budget = budget.loc[budget.Year==startb.year].copy()
 print(budget.head().to_string())
 budget = budget.drop('Year', axis='columns')
-
-#%%
-## add a budget line for checking account
-#new_row = pd.DataFrame({'Account_Budget':['0000 Checking Account'], 'Budget':[0], 'AccountNum':['0000']})
-#budget = pd.concat([budget, new_row], ignore_index=True)
-
-## # %% [markdown]
-## ## map categories to budget entries
-## budget, missing = mapit(budget, map)
-
  
-###############################################################################
-# %% [markdown]
-## Obtain ICON entries for budget year and comparison year
 
-#%%
-if icon_refresh:
-    print()
-    print('icon_refresh = ', icon_refresh)
-    print('pull data from Icon')
-    actualb, actualc = my.icon(startb, endb, startc, endc, interactive)
-    # icon() converts string to Timestamp (same as datetime.datetime) to datetime.date
-    if not os.path.exists('tmp'):
-        os.mkdir('tmp')
-    actualb.to_csv('tmp/actualb.csv', index=False)
-    actualc.to_csv('tmp/actualc.csv', index=False)
-
-else:
-    print()
-    print('icon_refresh = ', icon_refresh)
-    print('pull data from saved Icon files')
-    actualb = pd.read_csv('tmp/actualb.csv')
-    actualc = pd.read_csv('tmp/actualc.csv')
-    # followign converts string to Timestamp (same as datetime.datetime) to datetime.date
-    actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
-    actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
-    # following is only needed if the requested date ranges are smaller than what is in the csv files
-    actualb = actualb.loc[(actualb.Date >= startb) & (actualb.Date <= endb)]
-    actualc = actualc.loc[(actualc.Date >= startc) & (actualc.Date <= endc)]
-
-# extract account numbers
-actualb['AccountNum'] = actualb['Account'].str[:4]
-actualc['AccountNum'] = actualc['Account'].str[:4]
-
-# rename Account to Account_ICON
-actualb = actualb.rename(columns={'Account': 'Account_Icon'})
-actualc = actualc.rename(columns={'Account': 'Account_Icon'})
 
 ###############################################################################
 # %% [markdown]
-### READ CHECKING DATA INTO DATAFRAME: checking
-
-#%%
-#print()
-#print("starting to read checking.xlsx")
-#checkingfile = os.path.join('input', 'checking.xlsx')
-#checking = pd.read_excel(checkingfile)
-#print(checking.tail().to_string())
-
-### income from checking for expenses
-### positive means balance went down because we took money as income from checking
-#checking['Account_Icon'] = '0000 Checking Account'
-#balance_increase = checking['Balance'] - checking['Balance'].shift(1)
-#checking['Amount'] = -balance_increase
-#checking['AccountNum'] = '0000'
-#checking['Year'] = checking['Date'].dt.year
-
-### extract for each year
-#checkingb = checking.loc[checking.Year==startb.year].copy()
-#checkingc = checking.loc[checking.Year==startc.year].copy()
-#checkingb = checkingb[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
-#checkingc = checkingc[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
-
-## add to actualb and actualc
-#actualb = pd.concat([actualb, checkingb], ignore_index=True)
-#actualc = pd.concat([actualc, checkingc], ignore_index=True)
-
-
-#%%
-## add a beginning of year entry for every budget item
-
-# extract budget items
-time0 = budget.copy()
-time0.columns = ['Account_Icon', 'Amount', 'AccountNum']
-time0.Amount = 0
-
-# add to actualb
-time0['Date'] = startb
-time0 = time0[['Date', 'Account_Icon', 'Amount', 'AccountNum']]
-actualb = pd.concat([time0, actualb], axis=0)  # rbind; this changed type from Timestamp to datetime.date
-actualb.index = range(len(actualb))            # renumber dataframe
-
-## add to actualc
-time0['Date'] = startc
-actualc = pd.concat([time0, actualc], axis=0)  # rbind
-actualc.index = range(len(actualc))            # renumber dataframe
-
-# concat messed up date format so following fixes it back to datetime.date
-actualb['Date'] = pd.to_datetime(actualb['Date']).dt.date
-actualc['Date'] = pd.to_datetime(actualc['Date']).dt.date
-#print(type(actualc.Date[len(actualc)-1]))
-
-
-# %%
-'''
-### Add adjustment entries for linear YTD income in actualb and entire year in actualc
-if apply_linear_adjustments == True:
-    filename = 'input/budget_linear.xlsx'
-    actualblin, linearb = my.linearadj(filename, actualb, startb, endb)
-    actualclin, linearc = my.linearadj(filename, actualc, startc, endc)
-    actualb = actualblin.copy()
-    actualc = actualclin.copy()
-'''
-
+# Create separate dataframes for budget and comparison actuals
+actualb = financials[years.index(startb.year)].actual
+actualc = financials[years.index(startc.year)].actual
 
 #%%
 ## map 

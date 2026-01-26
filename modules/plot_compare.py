@@ -1,8 +1,11 @@
+import sys as sys
 import pandas as pd
 import datetime as dt
 import matplotlib.pyplot as plt
 
 def select(df, InOrOut='all', L1='all', L2='all'):
+    if InOrOut == L1 == L2 == 'all':
+        sys.exit('FATAL ERROR: select() requires at some parameter to not = "all"')
     # initialize masks to True
     numdf = len(df)
     mask_InOrOut =[True] * numdf
