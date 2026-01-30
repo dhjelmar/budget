@@ -42,6 +42,7 @@ import dataframe_image as dfi    # had to install with pip
 import jellyfish
 import os
 import sys
+import csv
 
 ## import my functions
 import modules as my
@@ -141,26 +142,20 @@ map, map_duplicates = my.read_map()
 print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 
 ###############################################################################
-#%%
+#%% [markdown]
 # Apply map
+
+#%%
 
 # Apply map to actuals
 actual, actual_missing = my.mapit(actual, map, fail_if_missing=True)
-#actual_missing
 
-#sorted(my.unique(actual.loc[actual.Year==2025].L1))
-
-
-#%%
 # Apply map to budget
 budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 #budget_missing
 
-budget.to_csv(os.path.join('output','junk.csv'),
-                                   index=False)
-
 ###############################################################################
-#%%
+#%% [markdown]
 # create financials object for each year and write to output file
 financials = []
 years = my.unique(actual.Year.to_list() + budget.Year.to_list())
@@ -172,7 +167,7 @@ for i,year in enumerate(years):
 
 financials[years.index(2024)].actual
 
-#%%
+#%% [markdown]
 # combine years for summary of actual amounts for eary years and 2026 budget
 def modit(obj, target='Amount', levels=['InOrOut','L1']):
     if len(levels) == 2:
@@ -193,47 +188,28 @@ df = pd.merge(df, modit(financials[years.index(2025)]), how='outer', on=['InOrOu
 df = pd.merge(df, modit(financials[years.index(2025)], target='Budget'), how='outer', on=['InOrOut','L1'])
 df = pd.merge(df, modit(financials[years.index(2026)], target='Budget'), how='outer', on=['InOrOut','L1'])
 df.to_csv(os.path.join('output','budget_summary.csv'), index=False)
-
-#%%
-# combine years for detailed results
-budgetyear = 2026
-levels = ['InOrOut','L1','L2','Account']
-df = pd.merge(modit(financials[years.index(budgetyear-1)], levels=levels), 
-              modit(financials[years.index(budgetyear)], target='Budget', levels=levels), 
-                    how='outer', 
-                    on=levels)
-df.to_csv(os.path.join('output','budget_details_'+str(budgetyear)+'.csv'), index=False)
-
-
-#%%
-#obj = financials[years.index(2025)]
-#df = obj.history('L2')
-#my.select(df, InOrOut='In', L1='01 Contributions - pledges', L2='all')
-
-
-#%%
-## filter budget to only requested year then drop the year column
-budget = budget.loc[budget.Year==startb.year].copy()
-print(budget.head().to_string())
-budget = budget.drop('Year', axis='columns')
- 
+df
 
 
 ###############################################################################
 # %% [markdown]
 # Create separate dataframes for budget and comparison actuals
+budget = financials[years.index(startb.year)].budget
+budget = budget.drop('Year', axis='columns')
 actualb = financials[years.index(startb.year)].actual
 actualc = financials[years.index(startc.year)].actual
 
 #%%
-## map 
-## left join with mapit
+## left join actuals with mapit
+actualb = actualb.drop(columns='Account')
+actualc = actualc.drop(columns='Account')
 actualb, missingb = my.mapit(actualb, map)
 actualc, missingc = my.mapit(actualc, map)
 
 #%% [markdown]
 ## write csv file with all entries from ICON combined with map info
 
+#%%
 # dataframe all
 all = pd.concat([actualc, actualb], axis=0)  # rbind
 all = all.rename(columns={'Account': 'Account_Map'})
@@ -259,6 +235,12 @@ all.to_csv(path, index=False)
 print(all[first].head().to_string())
 print("find", path)
 
+#%%
+# biggest naming differences
+inconsistencies = all.sort_values('Similarity').copy()
+inconsistencies.loc[inconsistencies.Similarity<0.7,
+                    ['InOrOut','L1','L2','Date','Account_Icon','Account_Map','Similarity']]
+
 
 ###############################################################################
 ###############################################################################
@@ -281,21 +263,6 @@ path = os.path.join('output', 'budget_report_' + str(endb) + '_details.csv')
 table.to_csv(path, index=False)
 print(table[first].head().to_string())
 print("find", path)
-
-
-#%%
-# evaluate inconsistencies
-print()
-print("evaluating inconsistencies in account names")
-inconsistencies = my.inconsistent(map, budget, actualb, actualc, 
-                                  startb, endb, startc)
-print(inconsistencies.head().to_string())
-
-path = os.path.join('output', 'budget_report_' + str(endb) + '_inconsistencies.csv')
-inconsistencies.to_csv(path, index=False)
-print()
-print("find", path)
-
 
 #%%
 if not interactive:
@@ -345,6 +312,7 @@ mask = ((table_totals.InOrOut  != '_Total') &
 table_totals_summary = table_totals_summary.loc[~mask]
 
 # convert to pivot
+levels=['InOrOut','L1']
 table_totals_summary = table_totals_summary.pivot_table(index=levels, 
                                                         values=['Budget', 'YTD', 'Last YTD', 'Current Month'], 
                                                         aggfunc=np.sum)
@@ -413,31 +381,6 @@ for i in range(len(actualc)):
 # all together
 plots     = [{'InOrOut':'In' , 'L1':'all', 'L2':'all'}]
 plots.append({'InOrOut':'Out', 'L1':'all', 'L2':'all'})
-#
-# # Tercentenary Fund and Vespers Offerings
-# plots.append({'InOrOut':'In', 'L1':'Education, Music, & Arts', 'L2':'all'})
-# plots.append({'InOrOut':'Out', 'L1':'Education, Music, & Arts', 'L2':'all'})
-# #
-# plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'all'})
-# plots.append({'InOrOut':'Out', 'L1':'Mission', 'L2':'all'})
-# #plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'Covenant Fund'})
-# #plots.append({'InOrOut':'In', 'L1':'Mission', 'L2':'UP Mission Fund'})
-# #
-# plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'all'})
-# plots.append({'InOrOut':'In', 'L1':'Operations', 'L2':'Contributions - pledge'})
-# #
-# # committees
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Adult Ed'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Archives'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Care & Support'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Communications'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Finance'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Membership'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Office'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Property'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Worship & Arts'})
-# plots.append({'InOrOut':'Out', 'L1':'Operations', 'L2':'Youth Ed'})
-# plots.append({'InOrOut':'Out', 'L1':'Personnel' , 'L2':'all'})
 
 # new greensheet with personnel separate out
 for committee in my.unique(table.loc[table.InOrOut=='In'].L1):
