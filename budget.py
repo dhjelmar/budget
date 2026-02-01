@@ -61,9 +61,9 @@ os.getcwd()
 overwrite_dates = True
 if overwrite_dates:
     print('overwriting selected dates')
-    startb = dt.date(2025, 1, 1)
-    endb   = dt.date(2025, 1, 31)
-    startc = dt.date(2024, 1, 1)
+    startb = dt.date(2025,  1,  1)
+    endb   = dt.date(2025, 12, 31)
+    startc = dt.date(2024,  1,  1)
     endc   = dt.date(2024, 12, 31)
     print('budget start    :', startb)
     print('budget end      :', endb)
@@ -165,8 +165,9 @@ for i,year in enumerate(years):
     financials[years.index(year)].Account.to_csv(os.path.join('output','budget_details_'+str(year)+'.csv'),
                                                  index=False)
 
-financials[years.index(2024)].actual
+financials[years.index(startb.year)].actual
 
+###############################################################################
 #%% [markdown]
 # combine years for summary of actual amounts for eary years and 2026 budget
 def modit(obj, target='Amount', levels=['InOrOut','L1']):
@@ -182,13 +183,16 @@ def modit(obj, target='Amount', levels=['InOrOut','L1']):
         df1 = df1.rename(columns={target: 'Budget_'+str(obj.year)})
     return df1
 
-#df = pd.merge(modit(financials[years.index(2022)]), modit(financials[years.index(2023)]), how='outer', on=['InOrOut','L1'])
-df = pd.merge(modit(financials[years.index(2023)]), modit(financials[years.index(2024)]), how='outer', on=['InOrOut','L1'])
-df = pd.merge(df, modit(financials[years.index(2025)]), how='outer', on=['InOrOut','L1'])
-df = pd.merge(df, modit(financials[years.index(2025)], target='Budget'), how='outer', on=['InOrOut','L1'])
-df = pd.merge(df, modit(financials[years.index(2026)], target='Budget'), how='outer', on=['InOrOut','L1'])
-df.to_csv(os.path.join('output','budget_summary.csv'), index=False)
-df
+def compare_budget_2026(financials):
+    #df = pd.merge(modit(financials[years.index(2022)]), modit(financials[years.index(2023)]), how='outer', on=['InOrOut','L1'])
+    df = pd.merge(modit(financials[years.index(2023)]), modit(financials[years.index(2024)]), how='outer', on=['InOrOut','L1'])
+    df = pd.merge(df, modit(financials[years.index(2025)]), how='outer', on=['InOrOut','L1'])
+    df = pd.merge(df, modit(financials[years.index(2025)], target='Budget'), how='outer', on=['InOrOut','L1'])
+    df = pd.merge(df, modit(financials[years.index(2026)], target='Budget'), how='outer', on=['InOrOut','L1'])
+    df.to_csv(os.path.join('output','budget_summary.csv'), index=False)
+    return df
+
+df = compare_budget_2026(financials)
 
 
 ###############################################################################
@@ -293,10 +297,10 @@ table_totals = my.tabletotals(table)
 ## get summary view of table
 table_totals_summary = table_totals.copy()
 # identify all rows to drop
-mask = ((table_totals.InOrOut  != '_Total') &
-       (table_totals.L1 != '_Total') &
-       (table_totals.L2 != '_Total') &
-       (table_totals.Account  == '_Total'))
+mask = ((table_totals_summary.InOrOut  != '_Total') &
+       (table_totals_summary.L1 != '_Total') &
+       (table_totals_summary.L2 != '_Total') &
+       (table_totals_summary.Account  == '_Total'))
 # mask = ((table_totals.L1 == '_Total') & (table_totals.L2 == '_Total')) | \
 #        (table_totals.Account  == '_Total')
 # mask = ((table_totals.L1 != '_Total') & (table_totals.L2 == '_Total')) | \
@@ -305,12 +309,15 @@ mask = ((table_totals.InOrOut  != '_Total') &
 mask = ~mask
 table_totals_summary = table_totals_summary.loc[mask]
 
-mask = ((table_totals.InOrOut  != '_Total') &
-       (table_totals.L1 != '_Total') &
-       (table_totals.L2 == '_Total') &
-       (table_totals.Account  == '_Total'))
-table_totals_summary = table_totals_summary.loc[~mask]
+#%%
+# drop any row where L2 is "_Total" unless InOrOut or L1 are "_Total"
+mask = ((table_totals_summary.InOrOut  != '_Total') &
+       (table_totals_summary.L1 != '_Total') &
+       (table_totals_summary.L2 == '_Total') &
+       (table_totals_summary.Account  == '_Total'))
+table_totals_summary = table_totals_summary.loc[~mask].copy()
 
+#%%
 # convert to pivot
 levels=['InOrOut','L1']
 table_totals_summary = table_totals_summary.pivot_table(index=levels, 

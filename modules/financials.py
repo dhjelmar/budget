@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import datetime as dt
+import jellyfish
 import modules as my
 
 class financials():
@@ -46,6 +47,11 @@ class financials():
             record = pd.merge(actual_sum, budget_sum, how='outer', on=levels)
         return record
     
+    def multilevel(self, df, levels=['InOrOut', 'L1']):
+        # return dataframe with multilevel index
+        # can flatten again with df.reset_index()
+        return df.set_index(levels)
+
     def history(self, level):
         if level == 'L1':
             df = self.pivot(levels=['Date', 'L1', 'InOrOut'])
@@ -74,3 +80,13 @@ class financials():
         actual['Date'] = pd.to_datetime(actual['Date']).dt.date
 
         return actual
+
+    def similarity(self):
+        similar = []
+        for row in range(len(self.actual)):
+            a = jellyfish.jaro_similarity(str(all.loc[row,'Account_Icon']), str(all.loc[row,'Account']))
+            similar.append(a)
+        comparison = self.actual.copy()
+        comparison['Similarity'] = similar
+        comparison = comparison.rename(columns={'Account':'Account_map'})
+        return comparison
