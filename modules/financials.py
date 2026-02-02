@@ -84,7 +84,8 @@ class financials():
     def similarity(self):
         similar = []
         for row in range(len(self.actual)):
-            a = jellyfish.jaro_similarity(str(all.loc[row,'Account_Icon']), str(all.loc[row,'Account']))
+            a = jellyfish.jaro_similarity(str(self.actual.loc[row,'Account_Icon']),
+                                          str(self.actual.loc[row,'Account']))
             similar.append(a)
         comparison = self.actual.copy()
         comparison['Similarity'] = similar

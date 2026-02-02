@@ -134,6 +134,14 @@ budget['AccountNum'] = budget['Account'].str[:4]
 # rename Account to Account_budget
 budget = budget.rename(columns={'Account': 'Account_budget'})
 
+#%%
+# if budget has multiple entries per account in a given year (e.g., if additional approved later by Consistory)
+# then need to collapse to one entry per account so maps correctly later
+budget = budget.pivot_table(index=['Year','Account_budget','AccountNum'], 
+                            values=['Budget'], 
+                            aggfunc='sum').reset_index()
+budget[budget.AccountNum=='4049']
+
 #%% 
 # READ MAP
 print()
@@ -165,7 +173,18 @@ for i,year in enumerate(years):
     financials[years.index(year)].Account.to_csv(os.path.join('output','budget_details_'+str(year)+'.csv'),
                                                  index=False)
 
+#financials[years.index(startc.year)].similarity()
 financials[years.index(startb.year)].actual
+
+
+#%%
+# find inconsistencies
+inconsistenciesb = financials[years.index(startb.year)].similarity()
+inconsistenciesc = financials[years.index(startc.year)].similarity()
+all = pd.concat([inconsistenciesc, inconsistenciesb], axis=0)  # rbind
+inconsistencies = all.sort_values('Similarity')
+inconsistencies.loc[inconsistencies.Similarity<0.7]
+
 
 ###############################################################################
 #%% [markdown]
@@ -213,39 +232,6 @@ actualc, missingc = my.mapit(actualc, map)
 #%% [markdown]
 ## write csv file with all entries from ICON combined with map info
 
-#%%
-# dataframe all
-all = pd.concat([actualc, actualb], axis=0)  # rbind
-all = all.rename(columns={'Account': 'Account_Map'})
-all.columns
-all.index = range(0,len(all))
-
-# add a column to help find differences in entries between sources
-similar = []
-for row in range(len(all)):
-    a = jellyfish.jaro_similarity(str(all.loc[row,'Account_Icon']), str(all.loc[row,'Account_Map']))
-    similar.append(a)
-all['Similarity'] = similar
-
-# reorder dataframe
-first = ['InOrOut', 'L1', 'L2', 'Date', 'Account_Icon', 'Account_Map', 'Amount', 'Similarity']
-all = my.first(all, first)
-
-# write csv file
-if not os.path.exists('output'):
-        os.mkdir('output')
-path = os.path.join('output', 'budget_report_' + str(endb) + '_dated_entries.csv')
-all.to_csv(path, index=False)
-print(all[first].head().to_string())
-print("find", path)
-
-#%%
-# biggest naming differences
-inconsistencies = all.sort_values('Similarity').copy()
-inconsistencies.loc[inconsistencies.Similarity<0.7,
-                    ['InOrOut','L1','L2','Date','Account_Icon','Account_Map','Similarity']]
-
-
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -258,6 +244,8 @@ print("creating table for budget report")
 table  = my.tableit(map, budget, actualb, actualc, 
                  startb, endb, startc)
 
+
+#%%
 # reorder
 first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'YTD%', 'Last YTD']
 first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'YTD%', 'YTD', 'Last YTD', 'Current Month']
