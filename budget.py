@@ -165,11 +165,13 @@ budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 ###############################################################################
 #%% [markdown]
 # create financials object for each year and write to output file
+
+#%%
 financials = []
 years = my.unique(actual.Year.to_list() + budget.Year.to_list())
 for i,year in enumerate(years):
     print('i =',i,'; year =',year)
-    financials.append(my.financials(year, actual, budget))
+    financials.append(my.financials(year, actual, budget, map))
     financials[years.index(year)].Account.to_csv(os.path.join('output','budget_details_'+str(year)+'.csv'),
                                                  index=False)
 
@@ -222,12 +224,6 @@ budget = budget.drop('Year', axis='columns')
 actualb = financials[years.index(startb.year)].actual
 actualc = financials[years.index(startc.year)].actual
 
-#%%
-## left join actuals with mapit
-actualb = actualb.drop(columns='Account')
-actualc = actualc.drop(columns='Account')
-actualb, missingb = my.mapit(actualb, map)
-actualc, missingc = my.mapit(actualc, map)
 
 #%% [markdown]
 ## write csv file with all entries from ICON combined with map info

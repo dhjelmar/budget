@@ -9,6 +9,16 @@ def mapit(df, map, fail_if_missing=False):
     import pandas as pd
     import regex as re
 
+    # remove columns from prior mapit() if they exist
+    if 'InOrOut' in df.columns:
+        df = df.drop(columns='InOrOut')
+    if 'L1' in df.columns:
+        df = df.drop(columns='L1')
+    if 'L2' in df.columns:
+        df = df.drop(columns='L2')
+    if 'Account' in df.columns:
+        df = df.drop(columns='Account')
+
     df = pd.merge(df, map, how='left', on='AccountNum')
 
     ## flag any line items from dataframe that are not in the map (e.g., so no Category assigned)

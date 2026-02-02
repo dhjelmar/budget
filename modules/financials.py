@@ -9,15 +9,18 @@ class financials():
     '''
     
     '''
-    def __init__(self, year, actual, budget):
+    def __init__(self, year, actual, budget, map):
         self.year = year
+
+        # restrict actual to requested year
+        self.actual = actual.loc[actual.Year == year].copy()
 
         # restrict budget to requested year
         self.budget = budget.loc[budget.Year == year].copy()
 
-        # restrict actual to requested year
-        self.actual = actual.loc[actual.Year == year].copy()
-                
+        # map
+        self.map = map
+
         # summarize at InOrOut
         self.InOrOut = self.pivot(levels=['InOrOut'])
 
@@ -78,6 +81,8 @@ class financials():
 
         # concat messed up date format so following fixes it back to datetime.date
         actual['Date'] = pd.to_datetime(actual['Date']).dt.date
+
+        actual, missing = my.mapit(actual, self.map)
 
         return actual
 
