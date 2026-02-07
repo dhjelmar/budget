@@ -205,16 +205,18 @@ def modit(obj, target='Amount', levels=['InOrOut','L1']):
         df1 = df1.rename(columns={target: 'Budget_'+str(obj.year)})
     return df1
 
-def compare_budget_2026(financials):
-    #df = pd.merge(modit(financials[years.index(2022)]), modit(financials[years.index(2023)]), how='outer', on=['InOrOut','L1'])
-    df = pd.merge(modit(financials[years.index(2023)]), modit(financials[years.index(2024)]), how='outer', on=['InOrOut','L1'])
-    df = pd.merge(df, modit(financials[years.index(2025)]), how='outer', on=['InOrOut','L1'])
-    df = pd.merge(df, modit(financials[years.index(2025)], target='Budget'), how='outer', on=['InOrOut','L1'])
-    df = pd.merge(df, modit(financials[years.index(2026)], target='Budget'), how='outer', on=['InOrOut','L1'])
+def compare_budget_2026(financials, levels=['InOrOut','L1']):
+    df = pd.merge(modit(financials[years.index(2023)], levels=levels), 
+                  modit(financials[years.index(2024)], levels=levels), how='outer')
+    df = pd.merge(df, modit(financials[years.index(2025)], levels=levels), how='outer')
+    df = pd.merge(df, modit(financials[years.index(2025)], target='Budget', levels=levels), how='outer')
+    df = pd.merge(df, modit(financials[years.index(2026)], target='Budget', levels=levels), how='outer')
     df.to_csv(os.path.join('output','budget_summary.csv'), index=False)
     return df
 
-df = compare_budget_2026(financials)
+levels=['InOrOut','L1']
+levels=['InOrOut','L1','L2','Account']
+df = compare_budget_2026(financials, levels=levels)
 df
 
 ###############################################################################
