@@ -24,11 +24,13 @@ In windows, can run by double clicking executable in file explorer
 # # Budget Vs. Actual Spending
 
 # %%
+##
 ## to enable autoreload of modules
 ## comment out when compile
 #%reload_ext autoreload
 #%autoreload 2
 
+#%%
 ## import packages
 import pandas as pd
 import datetime as dt
@@ -44,6 +46,7 @@ import os
 import sys
 import csv
 
+#%%
 ## import my functions
 import modules as my
 
@@ -151,20 +154,17 @@ print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 
 ###############################################################################
 #%% [markdown]
-# Apply map
+## Apply map
 
 #%%
-
-# Apply map to actuals
+# Apply map to actuals and budget
 actual, actual_missing = my.mapit(actual, map, fail_if_missing=True)
-
-# Apply map to budget
 budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 #budget_missing
 
 ###############################################################################
 #%% [markdown]
-# create financials object for each year and write to output file
+## Create financials object for each year and write to output file
 
 #%%
 financials = []
@@ -185,12 +185,13 @@ inconsistenciesb = financials[years.index(startb.year)].similarity()
 inconsistenciesc = financials[years.index(startc.year)].similarity()
 all = pd.concat([inconsistenciesc, inconsistenciesb], axis=0)  # rbind
 inconsistencies = all.sort_values('Similarity')
+inconsistencies = inconsistencies[['Date','Account_Icon','Account_map','Amount','Similarity']]
 inconsistencies.loc[inconsistencies.Similarity<0.7]
 
 
 ###############################################################################
 #%% [markdown]
-# combine years for summary of actual amounts for eary years and 2026 budget
+## Combine years for summary of actual amounts for eary years and 2026 budget
 def modit(obj, target='Amount', levels=['InOrOut','L1']):
     if len(levels) == 2:
         df1 = obj.L1[levels+[target]].copy()
@@ -214,11 +215,11 @@ def compare_budget_2026(financials):
     return df
 
 df = compare_budget_2026(financials)
-
+df
 
 ###############################################################################
 # %% [markdown]
-# Create separate dataframes for budget and comparison actuals
+## Create separate dataframes for budget and comparison actuals
 budget = financials[years.index(startb.year)].budget
 budget = budget.drop('Year', axis='columns')
 actualb = financials[years.index(startb.year)].actual
@@ -226,11 +227,13 @@ actualc = financials[years.index(startc.year)].actual
 
 
 #%% [markdown]
-## write csv file with all entries from ICON combined with map info
+## Write csv file with all entries from ICON combined with map info
 
-###############################################################################
-###############################################################################
-###############################################################################
+##############################################################################
+##############################################################################
+######### STILL WORKING BELOW HERE TO MAKE THIS MORE OBJECT ORIENTED #########
+##############################################################################
+##############################################################################
 # %% [markdown]
 ## Create summary table comparing budget and prior year (dataframe table)
 
