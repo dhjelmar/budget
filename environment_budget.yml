@@ -1,8 +1,11 @@
+# how to update:
+#   - increment python version in this file
+#   - conda env update --file environment_budget.yml
 name: budget
 channels:
   - defaults
 dependencies:
-   - python=3.9.16
+   - python=3.12     # python=3.9.16
    - pandas
    - seaborn
    - matplotlib
