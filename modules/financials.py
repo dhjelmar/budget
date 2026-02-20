@@ -43,11 +43,14 @@ class financials():
         if 'Date' in levels: 
             record = actual_sum
         else:
-            # 'Date' is not in budget, so skip the merge
             budget_sum = self.budget.pivot_table(index=levels, 
                                             values=['Budget'], 
                                             aggfunc='sum').reset_index()
             record = pd.merge(actual_sum, budget_sum, how='outer', on=levels)
+
+        if ('Amount' in record.columns) & ('Budget' in record.columns):
+            record['YTD%'] = round(record.Amount / record.Budget * 100, 0)
+
         return record
     
     def multilevel(self, df, levels=['InOrOut', 'L1']):

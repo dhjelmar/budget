@@ -233,7 +233,7 @@ actualc = financials[years.index(startc.year)].actual
 
 ##############################################################################
 ##############################################################################
-######### STILL WORKING BELOW HERE TO MAKE THIS MORE OBJECT ORIENTED #########
+######### STILL WORKING BELOW HERE TO MAKE THIS MORE OBJECT ORIENTED ######### dlh
 ##############################################################################
 ##############################################################################
 # %% [markdown]
@@ -244,14 +244,11 @@ print()
 print("creating table for budget report")
 table  = my.tableit(map, budget, actualb, actualc, 
                  startb, endb, startc)
-
-
-#%%
-# reorder
-first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'Current Month', 'YTD', 'YTD%', 'Last YTD']
 first = ['InOrOut', 'L1', 'L2', 'Account', 'Budget', 'YTD%', 'YTD', 'Last YTD', 'Current Month']
 table = my.first(table, first)
+table
 
+#%%
 path = os.path.join('output', 'budget_report_' + str(endb) + '_details.csv')
 table.to_csv(path, index=False)
 print(table[first].head().to_string())

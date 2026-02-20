@@ -328,7 +328,8 @@ def pdf(plotfiles, fileout, endb, cols, adjust=1):
 
     #############################################################################
     # Generate the PDF
-    pdf.output(fileout, 'F')
+    #breakpoint()
+    pdf.output(name=fileout, dest='F')
 
 
 # %%
