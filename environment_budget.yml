@@ -12,6 +12,8 @@ dependencies:
    - numpy
    - regex
    - jellyfish
+   - f90nml
+   - fpdf2           # from fdpf import FPDF
    #- pytesseract
    - ipykernel
    - openpyxl
@@ -20,5 +22,4 @@ dependencies:
    - pip:
       - dataframe_image
       - ocrmypdf
-      - fpdf
       - getpass4

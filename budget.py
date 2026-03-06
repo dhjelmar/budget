@@ -2,25 +2,36 @@
 # remember to also make the script executable: chmod 755 budget.py
 # execute script with: ./budget.py
 
-## to execute file, need to:
-##   1. Open Project using one of the following
-##      a. Open VSCode
-##         Select File / Open Folder / F:\Documents\01_Dave\Programs\GitHub_home\budget
-##      b. Double click project folder in File Explorer
-##         (double clicking budget.py in File Explorer does not open Project correctly)
-##   3. Select "Run Below" in the cell below these instructions
+#%%
+#%% [markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
+## Instructions
 
-'''
-alternately, create executable with
-   pyinstaller budget.py --onefile --hidden-import openpyxl.cell._writer
-in linux, this creates
-   budget
-in windows, this creates
-   budget.exe
-In windows, can run by double clicking executable in file explorer
-'''
+# - To execute file interactively, need to:
+#   - Open Project using one of the following
+#     - Open VScode and select: 
+#       `File` / `Open Folder` / `~/Documents/GitHub/budget`
+#     - Double click project **folder** in File Explorer 
+#       (double clicking budget.py in File Explorer does not open Project correctly)
+#   - Select `Run Below` just above these instructions or run each cell one at a time (ctrl-enter)
 
-# %%[markdown]   # Jupyter-like notebook in text file using ipython extension and ipykernel package
+# - Alternately
+#   - Create executable with
+#     - `pyinstaller budget.py --onefile --hidden-import openpyxl.cell._writer`
+#       - In linux, this creates: `budget`
+#       - In windows, this creates: `budget.exe`
+#   - Can run by double clicking executable in file explorer
+
+ 
+# Below is a fenced code block written in Python:
+# ```python
+# def hello_world():
+#     print("Hello world!")
+# 
+# hello_world()
+# ```
+# 
+
+# %%[markdown]
 # # Budget Vs. Actual Spending
 
 # %%
@@ -35,21 +46,23 @@ In windows, can run by double clicking executable in file explorer
 import pandas as pd
 import datetime as dt
 import seaborn as sns
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
+#from matplotlib import pyplot as plt
+#from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-import regex as re
-import calendar
+#import regex as re
+#import calendar
 import dataframe_image as dfi    # had to install with pip
-import jellyfish
+#import jellyfish
 import os
 import sys
-import csv
+#import csv
 
 #%%
 ## import my functions
 import modules as my
 
+#%%
+# working folder
 os.getcwd()
 
 
@@ -61,7 +74,7 @@ os.getcwd()
 ## Set budget and comparison year start and end dates
 
 # overwrite above for easier date setting if not running in interactive
-overwrite_dates = True
+overwrite_dates = False
 if overwrite_dates:
     print('overwriting selected dates')
     startb = dt.date(2025,  1,  1)
@@ -76,9 +89,11 @@ else:
     startb, endb, startc, endc = my.set_dates()
     # type(startb)     # datetime.date
 
-#%% set start and end dates for pulling info from ICON
+#%% 
+# set start and end dates for pulling info from ICON
 start = dt.date(2023, 1, 1)
 end   = endb
+print(start, end)
 
 #%%
 interactive = True   # option used to determine function to be used for password
@@ -90,7 +105,7 @@ icon_refresh = False
 ## Read Data
 
 #%% 
-# PULL INFO FROM ICON
+# PULL INFO FROM ICON INTO `actual`
 if icon_refresh:
     print()
     print('icon_refresh = ', icon_refresh)
@@ -122,14 +137,13 @@ actual = actual.rename(columns={'Account': 'Account_Icon'})
 # add column for year
 actual['Year'] = actual.Date.dt.year
 
-#%%
 ## check for values
 #print(actual.loc[actual.Account_Icon.str.contains('Endowment')])
 #print(actual.loc[actual.Account_Icon.str.contains('Birch')])
 #print(actual.loc[actual.Account_Icon.str.contains('Schermerhorn')])
 
 #%% 
-# READ BUDGET INFO FROM EXCEL
+# READ BUDGET INFO FROM EXCEL INTO `budget`
 budget = pd.read_excel(os.path.join('input','budget.xlsx'))
 budget = budget[['Year','Account','Budget']]
 ## extract account numbers to separate variable
@@ -138,15 +152,20 @@ budget['AccountNum'] = budget['Account'].str[:4]
 budget = budget.rename(columns={'Account': 'Account_budget'})
 
 #%%
+# Collapse budget entries to 1 per account per year, if needed
+
+print('before collapse (example)')
+print(budget[budget.AccountNum=='4049'])
 # if budget has multiple entries per account in a given year (e.g., if additional approved later by Consistory)
 # then need to collapse to one entry per account so maps correctly later
 budget = budget.pivot_table(index=['Year','Account_budget','AccountNum'], 
                             values=['Budget'], 
                             aggfunc='sum').reset_index()
+print('after collapse (example)')
 budget[budget.AccountNum=='4049']
 
 #%% 
-# READ MAP
+# READ MAP INTO `map` (DUPLICATES, IF ANY, IN `map_duplicates`)
 print()
 print("starting to read map.xlsx")
 map, map_duplicates = my.read_map()
@@ -154,7 +173,7 @@ print(map[['InOrOut', 'L1', 'L2', 'Account']].head().to_string())
 
 ###############################################################################
 #%% [markdown]
-## Apply map
+## Apply map to `actual` and `budget`
 
 #%%
 # Apply map to actuals and budget
@@ -164,23 +183,25 @@ budget, budget_missing = my.mapit(budget, map, fail_if_missing=True)
 
 ###############################################################################
 #%% [markdown]
-## Create financials object for each year and write to output file
+## Create `financials`` object for each year and write to output file
 
 #%%
 financials = []
 years = my.unique(actual.Year.to_list() + budget.Year.to_list())
 for i,year in enumerate(years):
-    print('i =',i,'; year =',year)
+    filename = os.path.join('output','budget_details_'+str(year)+'.csv')
+    print('i =',i,'; year =',year,'; saved to', filename)
     financials.append(my.financials(year, actual, budget, map))
-    financials[years.index(year)].Account.to_csv(os.path.join('output','budget_details_'+str(year)+'.csv'),
-                                                 index=False)
+    financials[years.index(year)].Account.to_csv(filename, index=False)
 
 #financials[years.index(startc.year)].similarity()
+print()
+print('financials[years.index(startb.year)].actual')
 financials[years.index(startb.year)].actual
 
 
 #%%
-# find inconsistencies
+# find inconsistencies between budget and comparison years and print any with `Similarity` < 0.7 to screen
 inconsistenciesb = financials[years.index(startb.year)].similarity()
 inconsistenciesc = financials[years.index(startc.year)].similarity()
 all = pd.concat([inconsistenciesc, inconsistenciesb], axis=0)  # rbind
